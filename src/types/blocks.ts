@@ -4,6 +4,8 @@
 // To customize block behavior, modify the blockDefinitions
 // and the code generator in src/lib/codeGenerator.ts
 
+import { createUuid } from '@/lib/uuid';
+
 export type BlockCategory = 'sensor' | 'action' | 'logic';
 
 export interface BlockParam {
@@ -151,7 +153,7 @@ export function createInstance(defId: string): BlockInstance {
   const def = getDefinition(defId);
   if (!def) throw new Error(`Unknown block: ${defId}`);
   return {
-    instanceId: crypto.randomUUID(),
+    instanceId: createUuid(),
     definitionId: defId,
     params: def.params.map((p) => ({ ...p })),
     children: def.hasChildren ? [] : undefined,

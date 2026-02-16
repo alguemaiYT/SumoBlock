@@ -1,13 +1,31 @@
 import { useState, useCallback, useRef } from 'react';
 import { Strategy, BlockInstance, createInstance } from '@/types/blocks';
+import { createUuid } from '@/lib/uuid';
 
 function newStrategy(): Strategy {
   return {
-    id: crypto.randomUUID(),
+    id: createUuid(),
     name: 'Nova Estratégia',
     description: '',
     blocks: [],
   };
+}
+
+function updateBlockRecursive(
+  blocks: BlockInstance[],
+  instanceId: string,
+  updater: (block: BlockInstance) => BlockInstance
+): BlockInstance[] {
+  return blocks.map((block) => {
+    if (block.instanceId === instanceId) {
+      return updater(block);
+    }
+    return {
+      ...block,
+      children: block.children ? updateBlockRecursive(block.children, instanceId, updater) : undefined,
+      elseChildren: block.elseChildren ? updateBlockRecursive(block.elseChildren, instanceId, updater) : undefined,
+    };
+  });
 }
 
 export function useStrategyEditor() {
@@ -110,6 +128,21 @@ export function useStrategyEditor() {
     [updateActive]
   );
 
+  const updateBlockParams = useCallback(
+    (instanceId: string, paramName: string, value: string | number) => {
+      updateActive((s) => ({
+        ...s,
+        blocks: updateBlockRecursive(s.blocks, instanceId, (block) => ({
+          ...block,
+          params: block.params.map((p) =>
+            p.name === paramName ? { ...p, value } : p
+          ),
+        })),
+      }));
+    },
+    [updateActive]
+  );
+
   const setName = useCallback(
     (name: string) => updateActive((s) => ({ ...s, name })),
     [updateActive]
@@ -185,5 +218,6 @@ export function useStrategyEditor() {
     addTab,
     removeTab,
     loadStrategy,
+    updateBlockParams,
   };
 }
