@@ -4,7 +4,8 @@ import {
   DragEndEvent,
   DragOverlay,
   DragStartEvent,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
@@ -29,6 +30,8 @@ import {
   ChevronDown,
   Plus,
   X,
+  PanelRightClose,
+  PanelRightOpen,
 } from 'lucide-react';
 
 const categories: { key: BlockCategory; label: string }[] = [
@@ -41,12 +44,19 @@ const Index = () => {
   const editor = useStrategyEditor();
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [codeOpen, setCodeOpen] = useState(false);
+  const [descriptionOpen, setDescriptionOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
+  const sensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    })
+  );
 
   const handleDragStart = (e: DragStartEvent) => {
     setDraggingId(e.active.id as string);
+    if (navigator.vibrate) navigator.vibrate(50);
   };
 
   const handleDragEnd = (e: DragEndEvent) => {
@@ -83,6 +93,10 @@ const Index = () => {
           <Logo />
           <h1 className="text-sm font-semibold tracking-wide text-foreground">SumoBlock</h1>
           <div className="ml-auto flex items-center gap-1">
+            <Button variant="ghost" size="icon" onClick={() => setDescriptionOpen(!descriptionOpen)} title={descriptionOpen ? "Ocultar painel lateral" : "Mostrar painel lateral"}>
+              {descriptionOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+            </Button>
+            <div className="mx-2 h-5 w-px bg-border" />
             <Button variant="ghost" size="icon" onClick={editor.undo} title="Desfazer">
               <Undo2 className="h-4 w-4" />
             </Button>
@@ -170,23 +184,25 @@ const Index = () => {
           />
 
           {/* Description panel */}
-          <aside className="w-full shrink-0 border-t border-border bg-card/30 p-4 overflow-y-auto md:w-64 md:border-t-0 md:border-l">
-            <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-              Estratégia
-            </h3>
-            <Input
-              value={editor.active.name}
-              onChange={(e) => editor.setName(e.target.value)}
-              placeholder="Nome da estratégia"
-              className="mb-3 text-sm"
-            />
-            <Textarea
-              value={editor.active.description}
-              onChange={(e) => editor.setDescription(e.target.value)}
-              placeholder="Descreva quando usar esta estratégia, contra qual tipo de oponente, condições da arena..."
-              className="min-h-[160px] text-sm"
-            />
-          </aside>
+          {descriptionOpen && (
+            <aside className="w-full shrink-0 border-t border-border bg-card/30 p-4 overflow-y-auto md:w-64 md:border-t-0 md:border-l">
+              <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Estratégia
+              </h3>
+              <Input
+                value={editor.active.name}
+                onChange={(e) => editor.setName(e.target.value)}
+                placeholder="Nome da estratégia"
+                className="mb-3 text-sm"
+              />
+              <Textarea
+                value={editor.active.description}
+                onChange={(e) => editor.setDescription(e.target.value)}
+                placeholder="Descreva quando usar esta estratégia, contra qual tipo de oponente, condições da arena..."
+                className="min-h-[160px] text-sm"
+              />
+            </aside>
+          )}
         </div>
 
         {/* Code preview */}
