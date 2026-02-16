@@ -13,21 +13,16 @@ import { blockDefinitions, BlockCategory, createInstance, getDefinition } from '
 import { PaletteBlock, WorkspaceBlock } from '@/components/BlockItem';
 import Logo from '@/components/Logo';
 import { useStrategyEditor } from '@/hooks/useStrategyEditor';
-import { exportJSON, exportArduinoCode, importJSON } from '@/lib/strategyExporter';
-import { generateArduinoCode } from '@/lib/codeGenerator';
+import { exportJSON, importJSON } from '@/lib/strategyExporter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   Undo2,
   Redo2,
   Trash2,
-  Download,
   Upload,
-  Code,
   FileJson,
-  ChevronDown,
   Plus,
   X,
   PanelRightClose,
@@ -43,7 +38,6 @@ const categories: { key: BlockCategory; label: string }[] = [
 const Index = () => {
   const editor = useStrategyEditor();
   const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [codeOpen, setCodeOpen] = useState(false);
   const [descriptionOpen, setDescriptionOpen] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -99,8 +93,6 @@ const Index = () => {
     ? getDefinition(draggingId.replace('palette-', ''))
     : null;
 
-  const generatedCode = generateArduinoCode(editor.active.blocks, editor.active.name);
-
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className="flex h-screen flex-col overflow-hidden">
@@ -128,10 +120,7 @@ const Index = () => {
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
             <Button variant="ghost" size="sm" onClick={() => exportJSON(editor.active)}>
-              <FileJson className="mr-1 h-3.5 w-3.5" /> JSON
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => exportArduinoCode(editor.active)}>
-              <Code className="mr-1 h-3.5 w-3.5" /> Arduino
+              <FileJson className="mr-1 h-3.5 w-3.5" /> Exportar JSON
             </Button>
           </div>
         </header>
@@ -220,20 +209,6 @@ const Index = () => {
             </aside>
           )}
         </div>
-
-        {/* Code preview */}
-        <Collapsible open={codeOpen} onOpenChange={setCodeOpen}>
-          <CollapsibleTrigger className="flex w-full items-center gap-2 border-t border-border bg-card px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors">
-            <Code className="h-3.5 w-3.5" />
-            Preview do Código
-            <ChevronDown className={`ml-auto h-3.5 w-3.5 transition-transform ${codeOpen ? 'rotate-180' : ''}`} />
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <pre className="max-h-56 overflow-auto border-t border-border bg-background p-4 text-xs text-muted-foreground font-mono">
-              {generatedCode}
-            </pre>
-          </CollapsibleContent>
-        </Collapsible>
       </div>
 
       {/* Drag overlay */}

@@ -1,4 +1,4 @@
-import { useDraggable } from '@dnd-kit/core';
+import { useDraggable, useDroppable } from '@dnd-kit/core';
 import { BlockDefinition, BlockInstance, getDefinition } from '@/types/blocks';
 import { cn } from '@/lib/utils';
 import { Input } from '@/components/ui/input';
