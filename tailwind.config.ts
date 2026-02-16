@@ -47,6 +47,9 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        "block-sensor": "hsl(var(--block-sensor))",
+        "block-action": "hsl(var(--block-action))",
+        "block-logic": "hsl(var(--block-logic))",
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
           foreground: "hsl(var(--sidebar-foreground))",
