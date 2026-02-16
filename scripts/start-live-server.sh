@@ -7,7 +7,7 @@ cd "$(dirname "$0")/.."
 # Defaults (can be overridden by environment variables)
 PORT="${PORT:-5173}"
 HOST="${HOST:-0.0.0.0}"
-OPEN="${OPEN:-true}"
+OPEN="${OPEN:-false}"
 
 # Open flag
 if [ "$OPEN" = "true" ] || [ "$OPEN" = "1" ]; then
