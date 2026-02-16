@@ -24,6 +24,9 @@ function updateBlockRecursive(
       ...block,
       children: block.children ? updateBlockRecursive(block.children, instanceId, updater) : undefined,
       elseChildren: block.elseChildren ? updateBlockRecursive(block.elseChildren, instanceId, updater) : undefined,
+      conditionChildren: block.conditionChildren
+        ? updateBlockRecursive(block.conditionChildren, instanceId, updater)
+        : undefined,
     };
   });
 }
@@ -128,6 +131,40 @@ export function useStrategyEditor() {
     [updateActive]
   );
 
+  const addConditionChild = useCallback(
+    (parentId: string, child: BlockInstance) => {
+      updateActive((s) => ({
+        ...s,
+        blocks: s.blocks.map((b) =>
+          b.instanceId === parentId
+            ? {
+                ...b,
+                conditionChildren: [...(b.conditionChildren || []), child],
+              }
+            : b
+        ),
+      }));
+    },
+    [updateActive]
+  );
+
+  const removeConditionChild = useCallback(
+    (parentId: string, childId: string) => {
+      updateActive((s) => ({
+        ...s,
+        blocks: s.blocks.map((b) =>
+          b.instanceId === parentId
+            ? {
+                ...b,
+                conditionChildren: b.conditionChildren?.filter((c) => c.instanceId !== childId),
+              }
+            : b
+        ),
+      }));
+    },
+    [updateActive]
+  );
+
   const updateBlockParams = useCallback(
     (instanceId: string, paramName: string, value: string | number) => {
       updateActive((s) => ({
@@ -210,6 +247,8 @@ export function useStrategyEditor() {
     removeElseChildBlock,
     addChildBlock,
     addElseChildBlock,
+    addConditionChild,
+    removeConditionChild,
     setName,
     setDescription,
     clearBlocks,

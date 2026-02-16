@@ -1,19 +1,11 @@
 import { useState, useRef } from 'react';
-import {
-  DndContext,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  MouseSensor,
-  TouchSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import { blockDefinitions, BlockCategory, createInstance, getDefinition } from '@/types/blocks';
-import { PaletteBlock, WorkspaceBlock } from '@/components/BlockItem';
+import { ReactFlowProvider } from '@xyflow/react';
 import Logo from '@/components/Logo';
-import { useStrategyEditor } from '@/hooks/useStrategyEditor';
-import { exportJSON, importJSON } from '@/lib/strategyExporter';
+import { useFlowEditor } from '@/hooks/useFlowEditor';
+import { FlowCanvas } from '@/components/flow/FlowCanvas';
+import { FlowPalette } from '@/components/flow/FlowPalette';
+import { NodeInspector } from '@/components/flow/NodeInspector';
+import { exportFlowJSON, importFlowJSON } from '@/lib/flowExporter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -29,59 +21,17 @@ import {
   PanelRightOpen,
 } from 'lucide-react';
 
-const categories: { key: BlockCategory; label: string }[] = [
-  { key: 'sensor', label: 'Sensores' },
-  { key: 'action', label: 'Ações' },
-  { key: 'logic', label: 'Lógica' },
-];
-
 const Index = () => {
-  const editor = useStrategyEditor();
-  const [draggingId, setDraggingId] = useState<string | null>(null);
-  const [descriptionOpen, setDescriptionOpen] = useState(true);
+  const editor = useFlowEditor();
+  const [panelOpen, setPanelOpen] = useState(true);
+  const [panelMode, setPanelMode] = useState<'strategy' | 'inspector'>('inspector');
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const sensors = useSensors(
-    useSensor(MouseSensor, { activationConstraint: { distance: 10 } }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 250, tolerance: 5 },
-    })
-  );
-
-  const handleDragStart = (e: DragStartEvent) => {
-    setDraggingId(e.active.id as string);
-    if (navigator.vibrate) navigator.vibrate(50);
-  };
-
-  const handleDragEnd = (e: DragEndEvent) => {
-    setDraggingId(null);
-    const data = e.active.data.current;
-    const overId = e.over?.id as string | undefined;
-
-    if (data?.type === 'palette') {
-      if (!overId) return;
-      if (overId === 'workspace') {
-        editor.addBlock(data.definitionId);
-        return;
-      }
-      if (overId.startsWith('body-')) {
-        const parentId = overId.replace('body-', '');
-        editor.addChildBlock(parentId, createInstance(data.definitionId));
-        return;
-      }
-      if (overId.startsWith('else-')) {
-        const parentId = overId.replace('else-', '');
-        editor.addElseChildBlock(parentId, createInstance(data.definitionId));
-        return;
-      }
-    }
-  };
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
-      const strategy = await importJSON(file);
+      const strategy = await importFlowJSON(file);
       editor.loadStrategy(strategy);
     } catch {
       alert('Erro ao importar arquivo');
@@ -89,20 +39,22 @@ const Index = () => {
     e.target.value = '';
   };
 
-  const draggingDef = draggingId?.startsWith('palette-')
-    ? getDefinition(draggingId.replace('palette-', ''))
-    : null;
-
   return (
-    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
+    <ReactFlowProvider>
       <div className="flex h-screen flex-col overflow-hidden">
         {/* Header */}
-        <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border bg-card px-4">
+        <header className="flex flex-wrap shrink-0 items-center gap-3 border-b border-border bg-card px-4 h-auto md:h-12">
           <Logo />
-          <h1 className="text-sm font-semibold tracking-wide text-foreground">SumoBlock</h1>
-          <div className="ml-auto flex items-center gap-1">
-            <Button variant="ghost" size="icon" onClick={() => setDescriptionOpen(!descriptionOpen)} title={descriptionOpen ? "Ocultar painel lateral" : "Mostrar painel lateral"}>
-              {descriptionOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
+          <h1 className="text-sm font-semibold tracking-wide text-foreground">SumoBlocks</h1>
+          <span className="text-[10px] text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full">Flow</span>
+          <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setPanelOpen(!panelOpen)}
+              title={panelOpen ? 'Ocultar painel lateral' : 'Mostrar painel lateral'}
+            >
+              {panelOpen ? <PanelRightClose className="h-4 w-4" /> : <PanelRightOpen className="h-4 w-4" />}
             </Button>
             <div className="mx-2 h-5 w-px bg-border" />
             <Button variant="ghost" size="icon" onClick={editor.undo} title="Desfazer">
@@ -111,7 +63,7 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={editor.redo} title="Refazer">
               <Redo2 className="h-4 w-4" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={editor.clearBlocks} title="Limpar">
+            <Button variant="ghost" size="icon" onClick={editor.clearNodes} title="Limpar">
               <Trash2 className="h-4 w-4" />
             </Button>
             <div className="mx-2 h-5 w-px bg-border" />
@@ -119,7 +71,7 @@ const Index = () => {
               <Upload className="mr-1 h-3.5 w-3.5" /> Importar
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
-            <Button variant="ghost" size="sm" onClick={() => exportJSON(editor.active)}>
+            <Button variant="ghost" size="sm" onClick={() => exportFlowJSON(editor.active)}>
               <FileJson className="mr-1 h-3.5 w-3.5" /> Exportar JSON
             </Button>
           </div>
@@ -149,134 +101,82 @@ const Index = () => {
               )}
             </button>
           ))}
-          <button
-            onClick={editor.addTab}
-            className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground"
-          >
+          <button onClick={editor.addTab} className="ml-1 rounded p-1 text-muted-foreground hover:text-foreground">
             <Plus className="h-3.5 w-3.5" />
           </button>
         </div>
 
         {/* Main content */}
-        <div className="flex flex-1 flex-col overflow-hidden gap-2 md:flex-row">
+        <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
           {/* Palette */}
-          <aside className="w-full max-h-[260px] shrink-0 overflow-y-auto border-b border-border bg-card/30 p-3 md:w-56 md:max-h-none md:border-b-0 md:border-r">
-            {categories.map((cat) => (
-              <div key={cat.key} className="mb-4">
-                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                  {cat.label}
-                </h3>
-                <div className="space-y-1.5">
-                  {blockDefinitions
-                    .filter((b) => b.category === cat.key)
-                    .map((def) => (
-                      <PaletteBlock key={def.id} definition={def} />
-                    ))}
-                </div>
-              </div>
-            ))}
-          </aside>
+          <FlowPalette onAddNode={editor.addNode} />
 
-          {/* Workspace */}
-          <WorkspaceDropArea
-            blocks={editor.active.blocks}
-            onRemove={editor.removeBlock}
-            onAddChild={editor.addChildBlock}
-            onAddElseChild={editor.addElseChildBlock}
-            onRemoveChild={editor.removeChildBlock}
-            onRemoveElseChild={editor.removeElseChildBlock}
-            onUpdateParams={editor.updateBlockParams}
+          {/* Flow Canvas */}
+          <FlowCanvas
+            nodes={editor.active.nodes}
+            edges={editor.active.edges}
+            onNodesChange={editor.onNodesChange}
+            onEdgesChange={editor.onEdgesChange}
+            onConnect={editor.onConnect}
+            onSelectNode={editor.setSelectedNodeId}
           />
 
-          {/* Description panel */}
-          {descriptionOpen && (
-            <aside className="w-full shrink-0 border-t border-border bg-card/30 p-4 overflow-y-auto md:w-64 md:border-t-0 md:border-l">
-              <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Estratégia
-              </h3>
-              <Input
-                value={editor.active.name}
-                onChange={(e) => editor.setName(e.target.value)}
-                placeholder="Nome da estratégia"
-                className="mb-3 text-sm"
-              />
-              <Textarea
-                value={editor.active.description}
-                onChange={(e) => editor.setDescription(e.target.value)}
-                placeholder="Descreva quando usar esta estratégia, contra qual tipo de oponente, condições da arena..."
-                className="min-h-[160px] text-sm"
-              />
-            </aside>
+          {/* Side panel */}
+          {panelOpen && (
+            <div className="w-full shrink-0 border-t border-border bg-card/30 overflow-y-auto md:w-64 md:border-t-0 md:border-l">
+              {/* Panel toggle */}
+              <div className="flex border-b border-border">
+                <button
+                  onClick={() => setPanelMode('inspector')}
+                  className={`flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                    panelMode === 'inspector'
+                      ? 'text-foreground bg-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Inspetor
+                </button>
+                <button
+                  onClick={() => setPanelMode('strategy')}
+                  className={`flex-1 py-1.5 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+                    panelMode === 'strategy'
+                      ? 'text-foreground bg-background'
+                      : 'text-muted-foreground hover:text-foreground'
+                  }`}
+                >
+                  Estratégia
+                </button>
+              </div>
+
+              {panelMode === 'inspector' ? (
+                <NodeInspector
+                  node={editor.selectedNode}
+                  onUpdateParam={editor.updateNodeParam}
+                  onDeleteNode={editor.deleteNode}
+                  onClose={() => editor.setSelectedNodeId(null)}
+                />
+              ) : (
+                <div className="p-4">
+                  <Input
+                    value={editor.active.name}
+                    onChange={(e) => editor.setName(e.target.value)}
+                    placeholder="Nome da estratégia"
+                    className="mb-3 text-sm"
+                  />
+                  <Textarea
+                    value={editor.active.description}
+                    onChange={(e) => editor.setDescription(e.target.value)}
+                    placeholder="Descreva quando usar esta estratégia, contra qual tipo de oponente, condições da arena..."
+                    className="min-h-[160px] text-sm"
+                  />
+                </div>
+              )}
+            </div>
           )}
         </div>
       </div>
-
-      {/* Drag overlay */}
-      <DragOverlay>
-        {draggingDef && (
-          <div className="rounded-md border border-primary/50 bg-card px-3 py-2 text-sm text-foreground shadow-lg">
-            {draggingDef.label}
-          </div>
-        )}
-      </DragOverlay>
-    </DndContext>
+    </ReactFlowProvider>
   );
 };
-
-// Droppable workspace area
-import { useDroppable } from '@dnd-kit/core';
-import { BlockInstance } from '@/types/blocks';
-
-function WorkspaceDropArea({
-  blocks,
-  onRemove,
-  onAddChild,
-  onAddElseChild,
-  onRemoveChild,
-  onRemoveElseChild,
-  onUpdateParams,
-}: {
-  blocks: BlockInstance[];
-  onRemove: (id: string) => void;
-  onAddChild: (parentId: string, child: BlockInstance) => void;
-  onAddElseChild: (parentId: string, child: BlockInstance) => void;
-  onRemoveChild: (parentId: string, childId: string) => void;
-  onRemoveElseChild: (parentId: string, childId: string) => void;
-  onUpdateParams: (instanceId: string, paramName: string, value: string | number) => void;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id: 'workspace' });
-
-  return (
-    <main
-      ref={setNodeRef}
-      className={`flex-1 min-h-0 min-w-0 overflow-y-auto p-4 transition-colors ${
-        isOver ? 'bg-primary/5' : 'bg-background'
-      }`}
-    >
-      {blocks.length === 0 ? (
-        <div className="flex h-full items-center justify-center">
-          <p className="text-sm text-muted-foreground/50">
-            Arraste blocos da paleta para cá
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {blocks.map((block) => (
-            <WorkspaceBlock
-              key={block.instanceId}
-              block={block}
-              onRemove={onRemove}
-              onAddChild={onAddChild}
-              onAddElseChild={onAddElseChild}
-              onRemoveChild={onRemoveChild}
-              onRemoveElseChild={onRemoveElseChild}
-              onUpdateParams={onUpdateParams}
-            />
-          ))}
-        </div>
-      )}
-    </main>
-  );
-}
 
 export default Index;

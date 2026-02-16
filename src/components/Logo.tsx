@@ -1,5 +1,5 @@
 // ============================================
-// SumoBlock - Logo Component
+// SumoBlocks - Logo Component
 // Replace the SVG below with your own logo
 // ============================================
 

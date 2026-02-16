@@ -1,8 +1,7 @@
 // ============================================
-// SumoBlock - Block Type Definitions
+// SumoBlocks - Block Type Definitions
 // ============================================
 // To customize block behavior, modify the blockDefinitions
-// and the code generator in src/lib/codeGenerator.ts
 
 import { createUuid } from '@/lib/uuid';
 
@@ -33,6 +32,7 @@ export interface BlockInstance {
   params: BlockParam[];
   children?: BlockInstance[];
   elseChildren?: BlockInstance[];
+  conditionChildren?: BlockInstance[];
 }
 
 export interface Strategy {
@@ -52,6 +52,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor Frontal',
     category: 'sensor',
     params: [
+      { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
       { name: 'distância', type: 'number', value: 20, unit: 'cm' },
     ],
   },
@@ -69,18 +70,9 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor de Linha',
     category: 'sensor',
     params: [
-      { name: 'posição', type: 'select', value: 'frente', options: ['frente', 'trás', 'esquerda', 'direita'] },
+      { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
     ],
   },
-  {
-    id: 'sensor_distance',
-    label: 'Sensor de Distância',
-    category: 'sensor',
-    params: [
-      { name: 'distância', type: 'number', value: 30, unit: 'cm' },
-    ],
-  },
-
   // --- ACTIONS ---
   {
     id: 'action_forward',
@@ -122,15 +114,21 @@ export const blockDefinitions: BlockDefinition[] = [
     category: 'action',
     params: [],
   },
+  {
+    id: 'action_wait',
+    label: 'Esperar',
+    category: 'action',
+    params: [
+      { name: 'tempo', type: 'number', value: 500, unit: 'ms' },
+    ],
+  },
 
   // --- LOGIC ---
   {
     id: 'logic_if',
     label: 'Se',
     category: 'logic',
-    params: [
-      { name: 'condição', type: 'select', value: 'sensor_front', options: ['sensor_front', 'sensor_side', 'sensor_line', 'sensor_distance'] },
-    ],
+    params: [],
     hasChildren: true,
     hasElse: true,
   },
@@ -158,5 +156,6 @@ export function createInstance(defId: string): BlockInstance {
     params: def.params.map((p) => ({ ...p })),
     children: def.hasChildren ? [] : undefined,
     elseChildren: def.hasElse ? [] : undefined,
+    conditionChildren: def.id === 'logic_if' ? [] : undefined,
   };
 }

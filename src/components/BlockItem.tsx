@@ -74,6 +74,8 @@ export function WorkspaceBlock({
   onRemoveChild,
   onRemoveElseChild,
   onUpdateParams,
+  onAddConditionChild,
+  onRemoveConditionChild,
 }: {
   block: BlockInstance;
   depth?: number;
@@ -83,14 +85,19 @@ export function WorkspaceBlock({
   onRemoveChild?: (parentId: string, childId: string) => void;
   onRemoveElseChild?: (parentId: string, childId: string) => void;
   onUpdateParams?: (instanceId: string, paramName: string, value: string | number) => void;
+  onSetCondition?: (parentId: string, condition: BlockInstance) => void;
+  onAddConditionChild?: (parentId: string, child: BlockInstance) => void;
+  onRemoveConditionChild?: (parentId: string, childId: string) => void;
 }) {
   const def = getDefinition(block.definitionId);
-  if (!def) return null;
-
-  const style = categoryStyles[def.category];
 
   const { setNodeRef: setBodyRef, isOver: isBodyOver } = useDroppable({ id: `body-${block.instanceId}` });
   const { setNodeRef: setElseRef, isOver: isElseOver } = useDroppable({ id: `else-${block.instanceId}` });
+  const { setNodeRef: setConditionRef, isOver: isConditionOver } = useDroppable({ id: `condition-${block.instanceId}` });
+
+  if (!def) return null;
+
+  const style = categoryStyles[def.category];
 
   return (
     <div className={cn('rounded-md border', style.border, style.bg)} style={{ marginLeft: depth * 16 }}>
@@ -149,6 +156,36 @@ export function WorkspaceBlock({
         </button>
       </div>
 
+      {/* Condição */}
+      {def.id === 'logic_if' && (
+        <div
+          ref={setConditionRef}
+          className={cn(
+            'mx-2 mb-2 rounded border border-dashed border-white/10 p-2 min-h-[42px]',
+            isConditionOver ? 'bg-primary/5' : ''
+          )}
+        >
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
+          <span>condição</span>
+        </div>
+        {block.conditionChildren && block.conditionChildren.length > 0 ? (
+          <div className="space-y-2">
+            {block.conditionChildren.map((condition) => (
+              <WorkspaceBlock
+                key={condition.instanceId}
+                block={condition}
+                depth={depth + 1}
+                onRemove={() => onRemoveConditionChild?.(block.instanceId, condition.instanceId)}
+                onUpdateParams={onUpdateParams}
+              />
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-muted-foreground">Arraste um sensor aqui</p>
+        )}
+      </div>
+      )}
+
       {/* Children (if/repeat body) */}
       {block.children !== undefined && (
         <div ref={setBodyRef} className={cn('mx-2 mb-2 rounded border border-dashed border-white/10 p-2 min-h-[32px]', isBodyOver ? 'bg-primary/5' : '')}>
@@ -164,6 +201,8 @@ export function WorkspaceBlock({
                 onRemoveChild={onRemoveChild}
                 onRemoveElseChild={onRemoveElseChild}
                 onUpdateParams={onUpdateParams}
+                onAddConditionChild={onAddConditionChild}
+                onRemoveConditionChild={onRemoveConditionChild}
               />
             </div>
           ))}
@@ -185,6 +224,8 @@ export function WorkspaceBlock({
                 onRemoveChild={onRemoveChild}
                 onRemoveElseChild={onRemoveElseChild}
                 onUpdateParams={onUpdateParams}
+                onAddConditionChild={onAddConditionChild}
+                onRemoveConditionChild={onRemoveConditionChild}
               />
             </div>
           ))}

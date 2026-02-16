@@ -1,6 +1,6 @@
 
 
-# 🤖 SumoBlock - Editor Visual de Estratégias de Sumô Robótico
+# 🤖 SumoBlocks - Editor Visual de Estratégias de Sumô Robótico
 
 ## Visão Geral
 Um editor de blocos minimalista estilo Scratch, com tema dark e visual clean, para criação de estratégias de combate de sumô autônomo. Os blocos são arrastáveis (drag & drop) e representam condições de sensores, ações de movimento e estruturas lógicas. A lógica interna dos blocos é facilmente customizável no código-fonte.
@@ -40,4 +40,3 @@ Um editor de blocos minimalista estilo Scratch, com tema dark e visual clean, pa
 - Desfazer/Refazer (undo/redo) básico
 - Preview do código gerado em um painel colapsável na parte inferior
 - Múltiplas estratégias em abas (criar, renomear, deletar abas)
-
