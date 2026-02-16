@@ -62,8 +62,24 @@ const Index = () => {
   const handleDragEnd = (e: DragEndEvent) => {
     setDraggingId(null);
     const data = e.active.data.current;
-    if (data?.type === 'palette' && e.over?.id === 'workspace') {
-      editor.addBlock(data.definitionId);
+    const overId = e.over?.id as string | undefined;
+
+    if (data?.type === 'palette') {
+      if (!overId) return;
+      if (overId === 'workspace') {
+        editor.addBlock(data.definitionId);
+        return;
+      }
+      if (overId.startsWith('body-')) {
+        const parentId = overId.replace('body-', '');
+        editor.addChildBlock(parentId, createInstance(data.definitionId));
+        return;
+      }
+      if (overId.startsWith('else-')) {
+        const parentId = overId.replace('else-', '');
+        editor.addElseChildBlock(parentId, createInstance(data.definitionId));
+        return;
+      }
     }
   };
 
