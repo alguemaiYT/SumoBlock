@@ -139,9 +139,9 @@ const Index = () => {
         </div>
 
         {/* Main content */}
-        <div className="flex flex-1 overflow-hidden">
+        <div className="flex flex-1 flex-col overflow-hidden gap-2 md:flex-row">
           {/* Palette */}
-          <aside className="w-56 shrink-0 overflow-y-auto border-r border-border bg-card/30 p-3">
+          <aside className="w-full max-h-[260px] shrink-0 overflow-y-auto border-b border-border bg-card/30 p-3 md:w-56 md:max-h-none md:border-b-0 md:border-r">
             {categories.map((cat) => (
               <div key={cat.key} className="mb-4">
                 <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
@@ -166,10 +166,11 @@ const Index = () => {
             onAddElseChild={editor.addElseChildBlock}
             onRemoveChild={editor.removeChildBlock}
             onRemoveElseChild={editor.removeElseChildBlock}
+            onUpdateParams={editor.updateBlockParams}
           />
 
           {/* Description panel */}
-          <aside className="w-64 shrink-0 overflow-y-auto border-l border-border bg-card/30 p-4">
+          <aside className="w-full shrink-0 border-t border-border bg-card/30 p-4 overflow-y-auto md:w-64 md:border-t-0 md:border-l">
             <h3 className="mb-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
               Estratégia
             </h3>
@@ -226,6 +227,7 @@ function WorkspaceDropArea({
   onAddElseChild,
   onRemoveChild,
   onRemoveElseChild,
+  onUpdateParams,
 }: {
   blocks: BlockInstance[];
   onRemove: (id: string) => void;
@@ -233,13 +235,14 @@ function WorkspaceDropArea({
   onAddElseChild: (parentId: string, child: BlockInstance) => void;
   onRemoveChild: (parentId: string, childId: string) => void;
   onRemoveElseChild: (parentId: string, childId: string) => void;
+  onUpdateParams: (instanceId: string, paramName: string, value: string | number) => void;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id: 'workspace' });
 
   return (
     <main
       ref={setNodeRef}
-      className={`flex-1 overflow-y-auto p-4 transition-colors ${
+      className={`flex-1 min-h-0 min-w-0 overflow-y-auto p-4 transition-colors ${
         isOver ? 'bg-primary/5' : 'bg-background'
       }`}
     >
@@ -260,6 +263,7 @@ function WorkspaceDropArea({
               onAddElseChild={onAddElseChild}
               onRemoveChild={onRemoveChild}
               onRemoveElseChild={onRemoveElseChild}
+              onUpdateParams={onUpdateParams}
             />
           ))}
         </div>
