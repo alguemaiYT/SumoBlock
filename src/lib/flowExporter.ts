@@ -68,6 +68,8 @@ function buildReadableFlow(strategy: FlowStrategy): string[] {
       lines.push(`${prefix}▶ Início`);
     } else if (node.type === 'sensorNode') {
       lines.push(`${prefix}? ${node.data.label}${paramText ? ` (${paramText})` : ''}`);
+    } else if (node.type === 'gateNode') {
+      lines.push(`${prefix}⊕ ${node.data.label}`);
     } else {
       lines.push(`${prefix}→ ${node.data.label}${paramText ? ` (${paramText})` : ''}`);
     }
@@ -75,7 +77,7 @@ function buildReadableFlow(strategy: FlowStrategy): string[] {
     // Find outgoing edges
     const outEdges = strategy.edges.filter((e) => e.source === nodeId);
 
-    if (node.type === 'sensorNode') {
+    if (node.type === 'sensorNode' || node.type === 'gateNode') {
       const yesEdge = outEdges.find((e) => e.sourceHandle === 'yes');
       const noEdge = outEdges.find((e) => e.sourceHandle === 'no');
 

@@ -97,19 +97,19 @@ export function useFlowEditor() {
     (connection: Connection) => {
       pushHistory();
       const sourceNode = active.nodes.find((n) => n.id === connection.source);
-      const isSensor = sourceNode?.data.category === 'sensor';
+      const hasBranches = sourceNode?.data.category === 'sensor' || sourceNode?.data.category === 'gate';
 
       const edgeLabel =
-        isSensor && connection.sourceHandle === 'yes'
+        hasBranches && connection.sourceHandle === 'yes'
           ? 'Sim'
-          : isSensor && connection.sourceHandle === 'no'
+          : hasBranches && connection.sourceHandle === 'no'
             ? 'Não'
             : undefined;
 
       const edgeStyle =
-        isSensor && connection.sourceHandle === 'yes'
+        hasBranches && connection.sourceHandle === 'yes'
           ? { stroke: '#22c55e' }
-          : isSensor && connection.sourceHandle === 'no'
+          : hasBranches && connection.sourceHandle === 'no'
             ? { stroke: '#ef4444' }
             : { stroke: '#64748b' };
 
@@ -147,7 +147,9 @@ export function useFlowEditor() {
           ? 'sensorNode'
           : def.category === 'action'
             ? 'actionNode'
-            : 'logicNode';
+            : def.category === 'gate'
+              ? 'gateNode'
+              : 'logicNode';
 
       // Place below existing nodes
       const maxY = active.nodes.reduce(

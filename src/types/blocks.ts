@@ -5,7 +5,7 @@
 
 import { createUuid } from '@/lib/uuid';
 
-export type BlockCategory = 'sensor' | 'action' | 'logic';
+export type BlockCategory = 'sensor' | 'action' | 'logic' | 'gate';
 
 export interface BlockParam {
   name: string;
@@ -140,6 +140,26 @@ export const blockDefinitions: BlockDefinition[] = [
       { name: 'vezes', type: 'number', value: 3 },
     ],
     hasChildren: true,
+  },
+
+  // --- GATES (logic gates for combining sensors) ---
+  {
+    id: 'gate_and',
+    label: 'E (AND)',
+    category: 'gate',
+    params: [],
+  },
+  {
+    id: 'gate_or',
+    label: 'Ou (OR)',
+    category: 'gate',
+    params: [],
+  },
+  {
+    id: 'gate_not',
+    label: 'Não (NOT)',
+    category: 'gate',
+    params: [],
   },
 ];
 

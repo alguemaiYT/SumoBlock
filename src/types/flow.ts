@@ -5,7 +5,7 @@ import { BlockParam } from './blocks';
 export interface FlowNodeData {
   definitionId: string;
   label: string;
-  category: 'sensor' | 'action' | 'logic' | 'start';
+  category: 'sensor' | 'action' | 'logic' | 'start' | 'gate';
   params: BlockParam[];
   [key: string]: unknown;
 }

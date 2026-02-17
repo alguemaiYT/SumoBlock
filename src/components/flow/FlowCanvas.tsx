@@ -13,6 +13,7 @@ import { StartNode } from './nodes/StartNode';
 import { SensorNode } from './nodes/SensorNode';
 import { ActionNode } from './nodes/ActionNode';
 import { LogicNode } from './nodes/LogicNode';
+import { GateNode } from './nodes/GateNode';
 
 import type { FlowNode, FlowEdge } from '@/types/flow';
 import type { NodeChange, EdgeChange, Connection } from '@xyflow/react';
@@ -22,6 +23,7 @@ const nodeTypes = {
   sensorNode: SensorNode,
   actionNode: ActionNode,
   logicNode: LogicNode,
+  gateNode: GateNode,
 };
 
 interface FlowCanvasProps {
@@ -84,6 +86,7 @@ export function FlowCanvas({
               case 'sensorNode': return '#3b82f6';
               case 'actionNode': return '#22c55e';
               case 'logicNode': return '#eab308';
+              case 'gateNode': return '#a855f7';
               default: return '#64748b';
             }
           }}
