@@ -1,14 +1,17 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { FlowNodeData } from '@/types/flow';
 
-export function ActionNode({ data }: NodeProps) {
+export function ActionNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   const paramsSummary = d.params
     .map((p) => `${p.value}${p.unit ?? ''}`)
     .join(', ');
+  const highlight = selected ? 'ring-2 ring-amber-400/70 shadow-[0_0_0_12px_rgba(251,191,36,0.35)]' : '';
 
   return (
-    <div className="relative min-w-[120px] rounded-lg border-2 border-[hsl(145,60%,45%)] bg-[hsl(145,60%,10%)] shadow-lg">
+    <div
+      className={`relative min-w-[120px] rounded-lg border-2 border-[hsl(145,60%,45%)] bg-[hsl(145,60%,10%)] shadow-lg ${highlight}`}
+    >
       {d.linkActive && (
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
       )}

@@ -1,20 +1,23 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { FlowNodeData } from '@/types/flow';
 
-export function SensorNode({ data }: NodeProps) {
+export function SensorNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
-  const detectParam = d.params.find((p) => p.name === 'detectado' && p.type === 'boolean');
+  const detectParam = d.params.find((p) => p.name === 'detectando' && p.type === 'boolean');
   const detectEnabled = detectParam?.value === true;
   const visibleParams = d.params
-    .filter((p) => p.name !== 'detectado' && (p.name !== 'distância' || !detectEnabled))
+    .filter((p) => p.name !== 'detectando' && (p.name !== 'distância' || !detectEnabled))
     .map((p) => `${p.value}${p.unit ?? ''}`)
     .filter(Boolean);
   const paramsSummary = detectEnabled
-    ? ['Detectado', ...visibleParams].filter(Boolean).join(' · ')
+    ? ['Detectando', ...visibleParams].filter(Boolean).join(' · ')
     : visibleParams.join(', ');
+  const highlight = selected ? 'ring-2 ring-amber-400/70 shadow-[0_0_0_12px_rgba(251,191,36,0.35)]' : '';
 
   return (
-    <div className="relative min-w-[140px] rounded-lg border-2 border-[hsl(210,70%,50%)] bg-[hsl(210,70%,12%)] shadow-lg">
+    <div
+      className={`relative min-w-[140px] rounded-lg border-2 border-[hsl(210,70%,50%)] bg-[hsl(210,70%,12%)] shadow-lg ${highlight}`}
+    >
       {d.linkActive && (
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
       )}

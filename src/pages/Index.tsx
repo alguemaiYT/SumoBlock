@@ -66,6 +66,24 @@ const Index = () => {
             <Button variant="ghost" size="icon" onClick={editor.clearNodes} title="Limpar">
               <Trash2 className="h-4 w-4" />
             </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={editor.removeSelectedEdge}
+              disabled={!editor.selectedEdgeId}
+              title="Selecione uma ligação para remover"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover ligação
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => editor.selectedNodeId && editor.deleteNode(editor.selectedNodeId)}
+              disabled={!editor.selectedNodeId}
+              title="Remover nó selecionado"
+            >
+              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover nó
+            </Button>
             <div className="mx-2 h-5 w-px bg-border" />
             <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
               <Upload className="mr-1 h-3.5 w-3.5" /> Importar
@@ -119,6 +137,7 @@ const Index = () => {
             onEdgesChange={editor.onEdgesChange}
             onConnect={editor.onConnect}
             onSelectNode={editor.selectNode}
+            onSelectEdge={editor.selectEdge}
           />
 
           {/* Side panel */}
@@ -153,7 +172,9 @@ const Index = () => {
                   node={editor.selectedNode}
                   onUpdateParam={editor.updateNodeParam}
                   onDeleteNode={editor.deleteNode}
+                  onClearConnections={editor.clearNodeConnections}
                   onLinkNode={editor.linkNode}
+                  onUnlinkNode={editor.unlinkNode}
                   onClose={() => editor.selectNode(null)}
                 />
               ) : (

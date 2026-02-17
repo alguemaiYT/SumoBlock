@@ -52,7 +52,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor Frontal',
     category: 'sensor',
     params: [
-      { name: 'detectado', type: 'boolean', value: false },
+      { name: 'detectando', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
       { name: 'distância', type: 'number', value: 20, unit: 'cm' },
     ],
@@ -62,7 +62,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor Lateral',
     category: 'sensor',
     params: [
-      { name: 'detectado', type: 'boolean', value: false },
+      { name: 'detectando', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
       { name: 'distância', type: 'number', value: 15, unit: 'cm' },
     ],
@@ -72,7 +72,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor de Linha',
     category: 'sensor',
     params: [
-      { name: 'detectado', type: 'boolean', value: false },
+      { name: 'detectando', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
     ],
   },

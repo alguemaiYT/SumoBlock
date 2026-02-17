@@ -37,10 +37,21 @@ function newFlowStrategy(): FlowStrategy {
   };
 }
 
+function isInfiniteRepeatNode(node?: FlowNode) {
+  if (!node || node.data.definitionId !== 'logic_repeat') return false;
+  return node.data.params.some(
+    (param) =>
+      param.name === 'indefinido' &&
+      param.type === 'boolean' &&
+      param.value === true
+  );
+}
+
 export function useFlowEditor() {
   const [strategies, setStrategies] = useState<FlowStrategy[]>([newFlowStrategy()]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [linkFocusGroup, setLinkFocusGroup] = useState<string | null>(null);
   const historyRef = useRef<FlowStrategy[][]>([]);
   const futureRef = useRef<FlowStrategy[][]>([]);
@@ -55,6 +66,13 @@ export function useFlowEditor() {
     const node = active.nodes.find((n) => n.id === selectedNodeId);
     setLinkFocusGroup(node?.data.linkGroupId ?? null);
   }, [selectedNodeId, active.nodes]);
+
+  useEffect(() => {
+    if (!selectedEdgeId) return;
+    if (!active.edges.some((edge) => edge.id === selectedEdgeId)) {
+      setSelectedEdgeId(null);
+    }
+  }, [selectedEdgeId, active.edges]);
 
   const pushHistory = useCallback(() => {
     historyRef.current.push(JSON.parse(JSON.stringify(strategies)));
@@ -101,23 +119,41 @@ export function useFlowEditor() {
 
   const onConnect = useCallback(
     (connection: Connection) => {
-      pushHistory();
+      if (!connection.source || !connection.target) return;
+
       const sourceNode = active.nodes.find((n) => n.id === connection.source);
       const hasBranches = sourceNode?.data.category === 'sensor' || sourceNode?.data.category === 'gate';
+      const isRepeatNode = sourceNode?.data.definitionId === 'logic_repeat';
+      const repeatHandle = (connection.sourceHandle ?? 'loop') as string;
+      const repeatInfinite = isInfiniteRepeatNode(sourceNode);
+
+      if (isRepeatNode && repeatInfinite && repeatHandle === 'done') {
+        return;
+      }
 
       const edgeLabel =
         hasBranches && connection.sourceHandle === 'yes'
           ? 'Sim'
           : hasBranches && connection.sourceHandle === 'no'
             ? 'Não'
-            : undefined;
+            : isRepeatNode && repeatHandle === 'loop'
+              ? 'Loop'
+              : isRepeatNode && repeatHandle === 'done'
+                ? 'Done'
+                : undefined;
 
       const edgeStyle =
         hasBranches && connection.sourceHandle === 'yes'
           ? { stroke: '#22c55e' }
           : hasBranches && connection.sourceHandle === 'no'
             ? { stroke: '#ef4444' }
-            : { stroke: '#64748b' };
+            : isRepeatNode && repeatHandle === 'loop'
+              ? { stroke: '#f59e0b' }
+              : isRepeatNode && repeatHandle === 'done'
+                ? { stroke: '#0ea5e9' }
+                : { stroke: '#64748b' };
+
+      pushHistory();
 
       setStrategies((prev) =>
         prev.map((s, i) =>
@@ -127,12 +163,19 @@ export function useFlowEditor() {
                 edges: addEdge(
                   {
                     ...connection,
+                    sourceHandle: isRepeatNode ? repeatHandle : connection.sourceHandle,
                     label: edgeLabel,
                     style: edgeStyle,
                     markerEnd: { type: MarkerType.ArrowClosed },
                     animated: true,
                   },
-                  s.edges
+                  isRepeatNode
+                    ? s.edges.filter((edge) => {
+                        if (edge.source !== connection.source) return true;
+                        const edgeHandle = edge.sourceHandle ?? 'loop';
+                        return edgeHandle !== repeatHandle;
+                      })
+                    : s.edges
                 ) as FlowEdge[],
               }
             : s
@@ -194,39 +237,133 @@ export function useFlowEditor() {
     [updateActive, selectedNodeId]
   );
 
-  const linkNode = useCallback(() => {
-    if (!selectedNodeId) return;
-    const baseNode = active.nodes.find((n) => n.id === selectedNodeId);
-    if (!baseNode) return;
-    const groupId = baseNode.data.linkGroupId ?? baseNode.id;
-    const cloneId = createUuid();
-    const clone: FlowNode = {
-      ...baseNode,
-      id: cloneId,
-      position: { x: baseNode.position.x + 80, y: baseNode.position.y + 120 },
-      data: {
-        ...baseNode.data,
-        linkGroupId: groupId,
-        params: baseNode.data.params.map((p) => ({ ...p })),
-      },
-    };
+  const clearNodeConnections = useCallback(
+    (nodeId: string) => {
+      const hasConnections = active.edges.some(
+        (edge) => edge.source === nodeId || edge.target === nodeId
+      );
+      if (!hasConnections) return;
 
+      const selectedEdge = selectedEdgeId
+        ? active.edges.find((edge) => edge.id === selectedEdgeId)
+        : undefined;
+      const shouldClearSelected = Boolean(
+        selectedEdge &&
+          (selectedEdge.source === nodeId || selectedEdge.target === nodeId)
+      );
+
+      updateActive((s) => ({
+        ...s,
+        edges: s.edges.filter(
+          (edge) => edge.source !== nodeId && edge.target !== nodeId
+        ),
+      }));
+
+      if (shouldClearSelected) {
+        setSelectedEdgeId(null);
+      }
+    },
+    [active.edges, selectedEdgeId, updateActive]
+  );
+
+  const removeSelectedEdge = useCallback(() => {
+    if (!selectedEdgeId) return;
     updateActive((s) => ({
       ...s,
-      nodes: [
-        ...s.nodes.map((n) =>
-          n.id === baseNode.id
-            ? {
-                ...n,
-                data: { ...n.data, linkGroupId: groupId },
-              }
-            : n
-        ),
-        clone,
-      ],
+      edges: s.edges.filter((edge) => edge.id !== selectedEdgeId),
     }));
-    setSelectedNodeId(cloneId);
-  }, [selectedNodeId, active.nodes, updateActive]);
+    setSelectedEdgeId(null);
+  }, [selectedEdgeId, updateActive]);
+
+  const linkNode = useCallback(
+    (nodeId?: string) => {
+      const targetId = nodeId ?? selectedNodeId;
+      if (!targetId) return;
+      const baseNode = active.nodes.find((n) => n.id === targetId);
+      if (!baseNode) return;
+      const groupId = baseNode.data.linkGroupId ?? baseNode.id;
+      const cloneId = createUuid();
+      const clone: FlowNode = {
+        id: cloneId,
+        type: baseNode.type,
+        position: { x: baseNode.position.x + 80, y: baseNode.position.y + 120 },
+        data: {
+          ...baseNode.data,
+          linkGroupId: groupId,
+          params: baseNode.data.params.map((p) => ({ ...p })),
+        },
+        deletable: baseNode.deletable,
+        draggable: true,
+      };
+
+      updateActive((s) => ({
+        ...s,
+        nodes: [
+          ...s.nodes.map((n) =>
+            n.id === baseNode.id && !n.data.linkGroupId
+              ? {
+                  ...n,
+                  data: { ...n.data, linkGroupId: groupId },
+                }
+              : n
+          ),
+          clone,
+        ],
+      }));
+      setSelectedNodeId(cloneId);
+    },
+    [selectedNodeId, active.nodes, updateActive]
+  );
+
+  const unlinkNode = useCallback(
+    (nodeId: string) => {
+      const target = active.nodes.find((n) => n.id === nodeId);
+      if (!target) return;
+      const groupId = target.data.linkGroupId;
+      if (!groupId) return;
+
+      const groupedNodes = active.nodes.filter((n) => n.data.linkGroupId === groupId);
+      if (groupedNodes.length === 0) return;
+
+      const removeIds = new Set(
+        target.id === groupId
+          ? groupedNodes.filter((n) => n.id !== target.id).map((n) => n.id)
+          : [target.id]
+      );
+
+      updateActive((s) => {
+        const nodesAfterRemoval = s.nodes.filter((n) => !removeIds.has(n.id));
+        const linkedLeft = nodesAfterRemoval.filter((n) => n.data.linkGroupId === groupId);
+        const normalizedNodes =
+          linkedLeft.length <= 1
+            ? nodesAfterRemoval.map((n) =>
+                n.data.linkGroupId === groupId
+                  ? {
+                      ...n,
+                      data: {
+                        ...n.data,
+                        linkGroupId: undefined,
+                      },
+                    }
+                  : n
+              )
+            : nodesAfterRemoval;
+
+        return {
+          ...s,
+          nodes: normalizedNodes,
+          edges: s.edges.filter(
+            (e) => !removeIds.has(e.source) && !removeIds.has(e.target)
+          ),
+        };
+      });
+
+      if (selectedNodeId && removeIds.has(selectedNodeId)) {
+        setSelectedNodeId(null);
+      }
+    },
+    [active.nodes, updateActive, selectedNodeId]
+  );
 
   // Update node parameters
   const updateNodeParam = useCallback(
@@ -234,6 +371,19 @@ export function useFlowEditor() {
       updateActive((s) => {
         const sourceNode = s.nodes.find((n) => n.id === nodeId);
         const groupId = sourceNode?.data.linkGroupId;
+        const nodesToUpdate = s.nodes.filter((n) => {
+          const matchesGroup =
+            groupId !== undefined && n.data.linkGroupId === groupId;
+          return n.id === nodeId || matchesGroup;
+        });
+        const repeatIdsToUpdate = new Set(
+          nodesToUpdate
+            .filter((n) => n.data.definitionId === 'logic_repeat')
+            .map((n) => n.id)
+        );
+        const shouldHideDone =
+          paramName === 'indefinido' && value === true && repeatIdsToUpdate.size > 0;
+
         return {
           ...s,
           nodes: s.nodes.map((n) => {
@@ -252,6 +402,13 @@ export function useFlowEditor() {
             }
             return n;
           }),
+          edges: shouldHideDone
+            ? s.edges.filter((edge) => {
+                if (!repeatIdsToUpdate.has(edge.source)) return true;
+                const sourceHandle = edge.sourceHandle ?? 'loop';
+                return sourceHandle !== 'done';
+              })
+            : s.edges,
         };
       });
     },
@@ -316,6 +473,16 @@ export function useFlowEditor() {
 
   const selectNode = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
+    if (nodeId) {
+      setSelectedEdgeId(null);
+    }
+  }, []);
+
+  const selectEdge = useCallback((edgeId: string | null) => {
+    setSelectedEdgeId(edgeId);
+    if (edgeId) {
+      setSelectedNodeId(null);
+    }
   }, []);
 
   const decoratedNodes = useMemo(() => {
@@ -342,14 +509,19 @@ export function useFlowEditor() {
     nodes: decoratedNodes,
     selectedNode,
     selectedNodeId,
+    selectedEdgeId,
     setSelectedNodeId,
     selectNode,
+    selectEdge,
     onNodesChange,
     onEdgesChange,
     onConnect,
     addNode,
     deleteNode,
+    clearNodeConnections,
+    removeSelectedEdge,
     linkNode,
+    unlinkNode,
     updateNodeParam,
     setName,
     setDescription,

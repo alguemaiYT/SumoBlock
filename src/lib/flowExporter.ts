@@ -89,6 +89,18 @@ function buildReadableFlow(strategy: FlowStrategy): string[] {
         lines.push(`${prefix}  Não:`);
         walk(noEdge.target, indent + 2);
       }
+    } else if (node.type === 'logicNode' && node.data.definitionId === 'logic_repeat') {
+      const loopEdge = outEdges.find((e) => (e.sourceHandle ?? 'loop') === 'loop');
+      const doneEdge = outEdges.find((e) => e.sourceHandle === 'done');
+
+      if (loopEdge) {
+        lines.push(`${prefix}  Loop:`);
+        walk(loopEdge.target, indent + 2);
+      }
+      if (doneEdge) {
+        lines.push(`${prefix}  Done:`);
+        walk(doneEdge.target, indent + 2);
+      }
     } else {
       for (const edge of outEdges) {
         walk(edge.target, indent + 1);

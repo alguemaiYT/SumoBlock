@@ -5,6 +5,7 @@ import {
   Controls,
   MiniMap,
   BackgroundVariant,
+  type EdgeMouseHandler,
   type NodeMouseHandler,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
@@ -33,6 +34,7 @@ interface FlowCanvasProps {
   onEdgesChange: (changes: EdgeChange[]) => void;
   onConnect: (connection: Connection) => void;
   onSelectNode: (nodeId: string | null) => void;
+  onSelectEdge: (edgeId: string | null) => void;
 }
 
 export function FlowCanvas({
@@ -42,8 +44,46 @@ export function FlowCanvas({
   onEdgesChange,
   onConnect,
   onSelectNode,
+  onSelectEdge,
 }: FlowCanvasProps) {
   const memoNodeTypes = useMemo(() => nodeTypes, []);
+
+  const linkEdges = useMemo(() => {
+    const groups = new Map<string, FlowNode[]>();
+    nodes.forEach((node) => {
+      const groupId = node.data.linkGroupId;
+      if (!groupId) return;
+      const list = groups.get(groupId) ?? [];
+      list.push(node);
+      groups.set(groupId, list);
+    });
+
+    return Array.from(groups.entries()).flatMap(([groupId, groupNodes]) => {
+      if (groupNodes.length < 2) return [];
+      const leader = groupNodes.find((n) => n.id === groupId) ?? groupNodes[0];
+      return groupNodes
+        .filter((node) => node.id !== leader.id)
+        .map((node) => ({
+          id: `link-${groupId}-${node.id}`,
+          source: leader.id,
+          target: node.id,
+          animated: false,
+          selectable: false,
+          focusable: false,
+          updatable: false,
+          deletable: false,
+          type: 'straight',
+          style: {
+            stroke: '#facc15',
+            strokeDasharray: '4 4',
+            strokeWidth: 2,
+            pointerEvents: 'none',
+          },
+        }));
+    });
+  }, [nodes]);
+
+  const renderedEdges = useMemo(() => [...edges, ...linkEdges], [edges, linkEdges]);
 
   const handleNodeClick: NodeMouseHandler = useCallback(
     (_event, node) => {
@@ -52,22 +92,32 @@ export function FlowCanvas({
     [onSelectNode]
   );
 
+  const handleEdgeClick: EdgeMouseHandler = useCallback(
+    (_event, edge) => {
+      onSelectEdge(edge.id);
+    },
+    [onSelectEdge]
+  );
+
   const handlePaneClick = useCallback(() => {
     onSelectNode(null);
-  }, [onSelectNode]);
+    onSelectEdge(null);
+  }, [onSelectNode, onSelectEdge]);
 
   return (
     <div className="flex-1 min-h-0 min-w-0">
       <ReactFlow
         nodes={nodes}
-        edges={edges}
+        edges={renderedEdges}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
         onNodeClick={handleNodeClick}
+        onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}
         nodeTypes={memoNodeTypes}
         fitView
+        multiSelectionKeyCode="Control"
         proOptions={{ hideAttribution: true }}
         className="bg-background"
         defaultEdgeOptions={{

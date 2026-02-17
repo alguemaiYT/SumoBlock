@@ -13,15 +13,16 @@ const gateTooltips: Record<string, string> = {
   gate_not: 'Inverte: verdadeiro vira falso e vice-versa',
 };
 
-export function GateNode({ data }: NodeProps) {
+export function GateNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   const symbol = gateSymbols[d.definitionId] ?? '?';
   const tooltip = gateTooltips[d.definitionId] ?? '';
   const isNot = d.definitionId === 'gate_not';
+  const highlight = selected ? 'ring-2 ring-amber-400/70 shadow-[0_0_0_12px_rgba(251,191,36,0.35)]' : '';
 
   return (
     <div
-      className="relative flex flex-col items-center"
+      className={`relative flex flex-col items-center ${highlight}`}
       title={tooltip}
     >
       {d.linkActive && (

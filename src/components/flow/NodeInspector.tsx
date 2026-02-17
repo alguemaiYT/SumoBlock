@@ -15,11 +15,21 @@ interface NodeInspectorProps {
   node: FlowNode | null;
   onUpdateParam: (nodeId: string, paramName: string, value: string | number | boolean) => void;
   onDeleteNode: (nodeId: string) => void;
+  onClearConnections: (nodeId: string) => void;
   onLinkNode: (nodeId: string) => void;
+  onUnlinkNode: (nodeId: string) => void;
   onClose: () => void;
 }
 
-export function NodeInspector({ node, onUpdateParam, onDeleteNode, onClose }: NodeInspectorProps) {
+export function NodeInspector({
+  node,
+  onUpdateParam,
+  onDeleteNode,
+  onClearConnections,
+  onLinkNode,
+  onUnlinkNode,
+  onClose,
+}: NodeInspectorProps) {
   if (!node) {
     return (
       <div className="p-4">
@@ -33,7 +43,7 @@ export function NodeInspector({ node, onUpdateParam, onDeleteNode, onClose }: No
   const data = node.data;
 
   const detectToggle = data.params.find(
-    (param) => param.name === 'detectado' && param.type === 'boolean'
+    (param) => param.name === 'detectando' && param.type === 'boolean'
   );
   const detectEnabled = detectToggle?.value === true;
   const infiniteToggle = data.params.find(
@@ -118,16 +128,33 @@ export function NodeInspector({ node, onUpdateParam, onDeleteNode, onClose }: No
         <p className="text-xs text-muted-foreground">Nenhum parâmetro editável</p>
       )}
 
-      {data.category !== 'start' && (
-        <div className="mt-4 space-y-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full text-xs"
-            onClick={() => onLinkNode(node.id)}
-          >
-            Criar link (ln)
-          </Button>
+      <div className="mt-4 space-y-2">
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full text-xs"
+          onClick={() => onLinkNode(node.id)}
+        >
+          Criar link (ln)
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border border-amber-400/70 text-amber-400 hover:bg-amber-500/10 text-xs"
+          onClick={() => onUnlinkNode(node.id)}
+          disabled={!data.linkGroupId}
+        >
+          {data.linkGroupId ? 'Remover link' : 'Sem link ativo'}
+        </Button>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full border border-orange-400/60 text-orange-300 hover:bg-orange-500/10 text-xs"
+          onClick={() => onClearConnections(node.id)}
+        >
+          Remover ligações do nó
+        </Button>
+        {data.category !== 'start' && (
           <Button
             variant="ghost"
             size="sm"
@@ -136,8 +163,8 @@ export function NodeInspector({ node, onUpdateParam, onDeleteNode, onClose }: No
           >
             Remover nó
           </Button>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }
