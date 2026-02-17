@@ -8,7 +8,10 @@ export function ActionNode({ data }: NodeProps) {
     .join(', ');
 
   return (
-    <div className="min-w-[120px] rounded-lg border-2 border-[hsl(145,60%,45%)] bg-[hsl(145,60%,10%)] shadow-lg">
+    <div className="relative min-w-[120px] rounded-lg border-2 border-[hsl(145,60%,45%)] bg-[hsl(145,60%,10%)] shadow-lg">
+      {d.linkActive && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
+      )}
       <Handle
         type="target"
         position={Position.Top}

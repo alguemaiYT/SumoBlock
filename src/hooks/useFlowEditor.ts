@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import {
   addEdge,
   applyNodeChanges,
@@ -41,14 +41,20 @@ export function useFlowEditor() {
   const [strategies, setStrategies] = useState<FlowStrategy[]>([newFlowStrategy()]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [linkFocusGroup, setLinkFocusGroup] = useState<string | null>(null);
   const historyRef = useRef<FlowStrategy[][]>([]);
   const futureRef = useRef<FlowStrategy[][]>([]);
 
   const active = strategies[activeIndex];
 
-  const selectedNode = selectedNodeId
-    ? active.nodes.find((n) => n.id === selectedNodeId) ?? null
-    : null;
+  useEffect(() => {
+    if (!selectedNodeId) {
+      setLinkFocusGroup(null);
+      return;
+    }
+    const node = active.nodes.find((n) => n.id === selectedNodeId);
+    setLinkFocusGroup(node?.data.linkGroupId ?? null);
+  }, [selectedNodeId, active.nodes]);
 
   const pushHistory = useCallback(() => {
     historyRef.current.push(JSON.parse(JSON.stringify(strategies)));
@@ -188,14 +194,53 @@ export function useFlowEditor() {
     [updateActive, selectedNodeId]
   );
 
+  const linkNode = useCallback(() => {
+    if (!selectedNodeId) return;
+    const baseNode = active.nodes.find((n) => n.id === selectedNodeId);
+    if (!baseNode) return;
+    const groupId = baseNode.data.linkGroupId ?? baseNode.id;
+    const cloneId = createUuid();
+    const clone: FlowNode = {
+      ...baseNode,
+      id: cloneId,
+      position: { x: baseNode.position.x + 80, y: baseNode.position.y + 120 },
+      data: {
+        ...baseNode.data,
+        linkGroupId: groupId,
+        params: baseNode.data.params.map((p) => ({ ...p })),
+      },
+    };
+
+    updateActive((s) => ({
+      ...s,
+      nodes: [
+        ...s.nodes.map((n) =>
+          n.id === baseNode.id
+            ? {
+                ...n,
+                data: { ...n.data, linkGroupId: groupId },
+              }
+            : n
+        ),
+        clone,
+      ],
+    }));
+    setSelectedNodeId(cloneId);
+  }, [selectedNodeId, active.nodes, updateActive]);
+
   // Update node parameters
   const updateNodeParam = useCallback(
-    (nodeId: string, paramName: string, value: string | number) => {
-      updateActive((s) => ({
-        ...s,
-        nodes: s.nodes.map((n) =>
-          n.id === nodeId
-            ? {
+    (nodeId: string, paramName: string, value: string | number | boolean) => {
+      updateActive((s) => {
+        const sourceNode = s.nodes.find((n) => n.id === nodeId);
+        const groupId = sourceNode?.data.linkGroupId;
+        return {
+          ...s,
+          nodes: s.nodes.map((n) => {
+            const matchesGroup =
+              groupId !== undefined && n.data.linkGroupId === groupId;
+            if (n.id === nodeId || matchesGroup) {
+              return {
                 ...n,
                 data: {
                   ...n.data,
@@ -203,10 +248,12 @@ export function useFlowEditor() {
                     p.name === paramName ? { ...p, value } : p
                   ),
                 },
-              }
-            : n
-        ),
-      }));
+              };
+            }
+            return n;
+          }),
+        };
+      });
     },
     [updateActive]
   );
@@ -267,19 +314,42 @@ export function useFlowEditor() {
     [activeIndex, pushHistory]
   );
 
+  const selectNode = useCallback((nodeId: string | null) => {
+    setSelectedNodeId(nodeId);
+  }, []);
+
+  const decoratedNodes = useMemo(() => {
+    return active.nodes.map((node) => ({
+      ...node,
+      data: {
+        ...node.data,
+        linkActive: linkFocusGroup
+          ? node.data.linkGroupId === linkFocusGroup
+          : false,
+      },
+    }));
+  }, [active.nodes, linkFocusGroup]);
+
+  const selectedNode = selectedNodeId
+    ? decoratedNodes.find((n) => n.id === selectedNodeId) ?? null
+    : null;
+
   return {
     strategies,
     active,
     activeIndex,
     setActiveIndex,
+    nodes: decoratedNodes,
     selectedNode,
     selectedNodeId,
     setSelectedNodeId,
+    selectNode,
     onNodesChange,
     onEdgesChange,
     onConnect,
     addNode,
     deleteNode,
+    linkNode,
     updateNodeParam,
     setName,
     setDescription,

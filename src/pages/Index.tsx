@@ -113,12 +113,12 @@ const Index = () => {
 
           {/* Flow Canvas */}
           <FlowCanvas
-            nodes={editor.active.nodes}
+            nodes={editor.nodes}
             edges={editor.active.edges}
             onNodesChange={editor.onNodesChange}
             onEdgesChange={editor.onEdgesChange}
             onConnect={editor.onConnect}
-            onSelectNode={editor.setSelectedNodeId}
+            onSelectNode={editor.selectNode}
           />
 
           {/* Side panel */}
@@ -153,7 +153,8 @@ const Index = () => {
                   node={editor.selectedNode}
                   onUpdateParam={editor.updateNodeParam}
                   onDeleteNode={editor.deleteNode}
-                  onClose={() => editor.setSelectedNodeId(null)}
+                  onLinkNode={editor.linkNode}
+                  onClose={() => editor.selectNode(null)}
                 />
               ) : (
                 <div className="p-4">

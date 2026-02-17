@@ -3,12 +3,21 @@ import type { FlowNodeData } from '@/types/flow';
 
 export function LogicNode({ data }: NodeProps) {
   const d = data as FlowNodeData;
-  const paramsSummary = d.params
+  const infiniteParam = d.params.find((p) => p.name === 'indefinido' && p.type === 'boolean');
+  const infinite = infiniteParam?.value === true;
+  const visibleParams = d.params
+    .filter((p) => p.name !== 'indefinido' && !(p.name === 'vezes' && infinite))
     .map((p) => `${p.name}: ${p.value}${p.unit ?? ''}`)
-    .join(', ');
+    .filter(Boolean);
+  const paramsSummary = infinite
+    ? '∞'
+    : visibleParams.join(', ');
 
   return (
-    <div className="min-w-[120px] rounded-lg border-2 border-[hsl(45,80%,55%)] bg-[hsl(45,80%,10%)] shadow-lg">
+    <div className="relative min-w-[120px] rounded-lg border-2 border-[hsl(45,80%,55%)] bg-[hsl(45,80%,10%)] shadow-lg">
+      {d.linkActive && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
+      )}
       <Handle
         type="target"
         position={Position.Top}

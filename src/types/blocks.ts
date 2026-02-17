@@ -9,8 +9,8 @@ export type BlockCategory = 'sensor' | 'action' | 'logic' | 'gate';
 
 export interface BlockParam {
   name: string;
-  type: 'number' | 'string' | 'select';
-  value: string | number;
+  type: 'number' | 'string' | 'select' | 'boolean';
+  value: string | number | boolean;
   options?: string[]; // for select type
   unit?: string;
 }
@@ -52,6 +52,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor Frontal',
     category: 'sensor',
     params: [
+      { name: 'detectado', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
       { name: 'distância', type: 'number', value: 20, unit: 'cm' },
     ],
@@ -61,6 +62,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor Lateral',
     category: 'sensor',
     params: [
+      { name: 'detectado', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
       { name: 'distância', type: 'number', value: 15, unit: 'cm' },
     ],
@@ -70,6 +72,7 @@ export const blockDefinitions: BlockDefinition[] = [
     label: 'Sensor de Linha',
     category: 'sensor',
     params: [
+      { name: 'detectado', type: 'boolean', value: false },
       { name: 'lado', type: 'select', value: 'esquerdo', options: ['esquerdo', 'direito'] },
     ],
   },
@@ -138,6 +141,7 @@ export const blockDefinitions: BlockDefinition[] = [
     category: 'logic',
     params: [
       { name: 'vezes', type: 'number', value: 3 },
+      { name: 'indefinido', type: 'boolean', value: false },
     ],
     hasChildren: true,
   },

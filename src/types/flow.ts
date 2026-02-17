@@ -7,6 +7,8 @@ export interface FlowNodeData {
   label: string;
   category: 'sensor' | 'action' | 'logic' | 'start' | 'gate';
   params: BlockParam[];
+  linkGroupId?: string;
+  linkActive?: boolean;
   [key: string]: unknown;
 }
 

@@ -24,6 +24,9 @@ export function GateNode({ data }: NodeProps) {
       className="relative flex flex-col items-center"
       title={tooltip}
     >
+      {d.linkActive && (
+        <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
+      )}
       {/* Multiple target handles for AND/OR, single for NOT */}
       {isNot ? (
         <Handle
