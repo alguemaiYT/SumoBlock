@@ -51,6 +51,7 @@ export function useFlowEditor() {
   const [strategies, setStrategies] = useState<FlowStrategy[]>([newFlowStrategy()]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
+  const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
   const [selectedEdgeId, setSelectedEdgeId] = useState<string | null>(null);
   const [linkFocusGroup, setLinkFocusGroup] = useState<string | null>(null);
   const historyRef = useRef<FlowStrategy[][]>([]);
@@ -73,6 +74,15 @@ export function useFlowEditor() {
       setSelectedEdgeId(null);
     }
   }, [selectedEdgeId, active.edges]);
+
+  useEffect(() => {
+    const activeNodeIds = new Set(active.nodes.map((node) => node.id));
+    setSelectedNodeIds((prev) => {
+      const next = prev.filter((nodeId) => activeNodeIds.has(nodeId));
+      return next.length === prev.length ? prev : next;
+    });
+    setSelectedNodeId((prev) => (prev && activeNodeIds.has(prev) ? prev : null));
+  }, [active.nodes]);
 
   const pushHistory = useCallback(() => {
     historyRef.current.push(JSON.parse(JSON.stringify(strategies)));
@@ -233,9 +243,26 @@ export function useFlowEditor() {
         edges: s.edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
       }));
       if (selectedNodeId === nodeId) setSelectedNodeId(null);
+      setSelectedNodeIds((prev) => prev.filter((id) => id !== nodeId));
     },
     [updateActive, selectedNodeId]
   );
+
+  const removeSelectedNodes = useCallback(() => {
+    const removeIds = selectedNodeIds.filter((nodeId) => nodeId !== 'start');
+    if (removeIds.length === 0) return;
+
+    const removeSet = new Set(removeIds);
+    updateActive((s) => ({
+      ...s,
+      nodes: s.nodes.filter((node) => !removeSet.has(node.id)),
+      edges: s.edges.filter(
+        (edge) => !removeSet.has(edge.source) && !removeSet.has(edge.target)
+      ),
+    }));
+    setSelectedNodeIds([]);
+    setSelectedNodeId(null);
+  }, [selectedNodeIds, updateActive]);
 
   const clearNodeConnections = useCallback(
     (nodeId: string) => {
@@ -361,6 +388,7 @@ export function useFlowEditor() {
       if (selectedNodeId && removeIds.has(selectedNodeId)) {
         setSelectedNodeId(null);
       }
+      setSelectedNodeIds((prev) => prev.filter((id) => !removeIds.has(id)));
     },
     [active.nodes, updateActive, selectedNodeId]
   );
@@ -473,6 +501,7 @@ export function useFlowEditor() {
 
   const selectNode = useCallback((nodeId: string | null) => {
     setSelectedNodeId(nodeId);
+    setSelectedNodeIds(nodeId ? [nodeId] : []);
     if (nodeId) {
       setSelectedEdgeId(null);
     }
@@ -482,8 +511,27 @@ export function useFlowEditor() {
     setSelectedEdgeId(edgeId);
     if (edgeId) {
       setSelectedNodeId(null);
+      setSelectedNodeIds([]);
     }
   }, []);
+
+  const onSelectionChange = useCallback(
+    (nodeIds: string[], edgeIds: string[]) => {
+      setSelectedNodeIds(nodeIds);
+      setSelectedNodeId((prev) => {
+        if (prev && nodeIds.includes(prev)) return prev;
+        return nodeIds.length > 0 ? nodeIds[nodeIds.length - 1] : null;
+      });
+
+      if (nodeIds.length > 0) {
+        setSelectedEdgeId(null);
+        return;
+      }
+
+      setSelectedEdgeId(edgeIds.length === 1 ? edgeIds[0] : null);
+    },
+    []
+  );
 
   const decoratedNodes = useMemo(() => {
     return active.nodes.map((node) => ({
@@ -509,15 +557,18 @@ export function useFlowEditor() {
     nodes: decoratedNodes,
     selectedNode,
     selectedNodeId,
+    selectedNodeIds,
     selectedEdgeId,
     setSelectedNodeId,
     selectNode,
     selectEdge,
+    onSelectionChange,
     onNodesChange,
     onEdgesChange,
     onConnect,
     addNode,
     deleteNode,
+    removeSelectedNodes,
     clearNodeConnections,
     removeSelectedEdge,
     linkNode,

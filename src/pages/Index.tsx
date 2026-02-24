@@ -26,6 +26,7 @@ const Index = () => {
   const [panelOpen, setPanelOpen] = useState(true);
   const [panelMode, setPanelMode] = useState<'strategy' | 'inspector'>('inspector');
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const removableSelectionCount = editor.selectedNodeIds.filter((nodeId) => nodeId !== 'start').length;
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -78,11 +79,18 @@ const Index = () => {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => editor.selectedNodeId && editor.deleteNode(editor.selectedNodeId)}
-              disabled={!editor.selectedNodeId}
-              title="Remover nó selecionado"
+              onClick={editor.removeSelectedNodes}
+              disabled={removableSelectionCount === 0}
+              title={
+                removableSelectionCount > 1
+                  ? 'Remover nós selecionados'
+                  : 'Remover nó selecionado'
+              }
             >
-              <Trash2 className="mr-1 h-3.5 w-3.5" /> Remover nó
+              <Trash2 className="mr-1 h-3.5 w-3.5" />{' '}
+              {removableSelectionCount > 1
+                ? `Remover ${removableSelectionCount} nós`
+                : 'Remover nó'}
             </Button>
             <div className="mx-2 h-5 w-px bg-border" />
             <Button variant="ghost" size="sm" onClick={() => fileInputRef.current?.click()}>
@@ -138,6 +146,7 @@ const Index = () => {
             onConnect={editor.onConnect}
             onSelectNode={editor.selectNode}
             onSelectEdge={editor.selectEdge}
+            onSelectionChange={editor.onSelectionChange}
           />
 
           {/* Side panel */}

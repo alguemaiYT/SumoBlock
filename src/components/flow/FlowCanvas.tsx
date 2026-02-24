@@ -7,6 +7,7 @@ import {
   BackgroundVariant,
   type EdgeMouseHandler,
   type NodeMouseHandler,
+  type OnSelectionChangeFunc,
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 
@@ -35,6 +36,7 @@ interface FlowCanvasProps {
   onConnect: (connection: Connection) => void;
   onSelectNode: (nodeId: string | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
+  onSelectionChange: (nodeIds: string[], edgeIds: string[]) => void;
 }
 
 export function FlowCanvas({
@@ -45,6 +47,7 @@ export function FlowCanvas({
   onConnect,
   onSelectNode,
   onSelectEdge,
+  onSelectionChange,
 }: FlowCanvasProps) {
   const memoNodeTypes = useMemo(() => nodeTypes, []);
 
@@ -104,6 +107,16 @@ export function FlowCanvas({
     onSelectEdge(null);
   }, [onSelectNode, onSelectEdge]);
 
+  const handleSelectionChange: OnSelectionChangeFunc<FlowNode, FlowEdge> = useCallback(
+    ({ nodes: selectedNodes, edges: selectedEdges }) => {
+      onSelectionChange(
+        selectedNodes.map((node) => node.id),
+        selectedEdges.map((edge) => edge.id)
+      );
+    },
+    [onSelectionChange]
+  );
+
   return (
     <div className="flex-1 min-h-0 min-w-0">
       <ReactFlow
@@ -115,8 +128,10 @@ export function FlowCanvas({
         onNodeClick={handleNodeClick}
         onEdgeClick={handleEdgeClick}
         onPaneClick={handlePaneClick}
+        onSelectionChange={handleSelectionChange}
         nodeTypes={memoNodeTypes}
         fitView
+        deleteKeyCode={['Delete', 'Backspace']}
         multiSelectionKeyCode="Control"
         proOptions={{ hideAttribution: true }}
         className="bg-background"
