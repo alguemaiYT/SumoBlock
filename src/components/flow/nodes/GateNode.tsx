@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { FlowNodeData } from '@/types/flow';
+import { BlockHoverCard } from '@/components/BlockHoverCard';
 
 const gateSymbols: Record<string, string> = {
   gate_and: '&',
@@ -7,23 +8,16 @@ const gateSymbols: Record<string, string> = {
   gate_not: '1',
 };
 
-const gateTooltips: Record<string, string> = {
-  gate_and: 'Verdadeiro quando TODAS as entradas forem verdadeiras',
-  gate_or: 'Verdadeiro quando QUALQUER entrada for verdadeira',
-  gate_not: 'Inverte: verdadeiro vira falso e vice-versa',
-};
-
 export function GateNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
   const symbol = gateSymbols[d.definitionId] ?? '?';
-  const tooltip = gateTooltips[d.definitionId] ?? '';
   const isNot = d.definitionId === 'gate_not';
   const highlight = selected ? 'ring-2 ring-amber-400/70 shadow-[0_0_0_12px_rgba(251,191,36,0.35)]' : '';
 
   return (
+    <BlockHoverCard definitionId={d.definitionId} side="right">
     <div
       className={`relative flex flex-col items-center ${highlight}`}
-      title={tooltip}
     >
       {d.linkActive && (
         <div className="pointer-events-none absolute inset-y-0 right-0 w-1 bg-yellow-400/80" />
@@ -93,5 +87,6 @@ export function GateNode({ data, selected }: NodeProps) {
         </div>
       </div>
     </div>
+    </BlockHoverCard>
   );
 }

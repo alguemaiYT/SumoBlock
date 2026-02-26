@@ -1,4 +1,5 @@
 import { blockDefinitions, BlockCategory } from '@/types/blocks';
+import { BlockHoverCard } from '@/components/BlockHoverCard';
 
 const categories: { key: BlockCategory; label: string; tooltip?: string }[] = [
   { key: 'sensor', label: 'Sensores', tooltip: 'Leituras do robô (distância, linha)' },
@@ -21,22 +22,6 @@ const dotColors: Record<string, string> = {
   gate: 'bg-purple-500',
 };
 
-const blockTooltips: Record<string, string> = {
-  sensor_front: 'Detecta objetos à frente do robô',
-  sensor_side: 'Detecta objetos ao lado do robô',
-  sensor_line: 'Detecta a borda da arena (linha branca)',
-  action_forward: 'Move o robô para frente',
-  action_backward: 'Move o robô para trás',
-  action_turn_left: 'Gira o robô para a esquerda',
-  action_turn_right: 'Gira o robô para a direita',
-  action_stop: 'Para todos os motores',
-  action_wait: 'Espera um tempo antes de continuar',
-  logic_if: 'Executa ações condicionalmente',
-  logic_repeat: 'Repete ações N vezes',
-  gate_and: 'Combina 2 sensores: ambos devem ser verdadeiros',
-  gate_or: 'Combina 2 sensores: pelo menos um verdadeiro',
-  gate_not: 'Inverte o resultado de um sensor',
-};
 
 interface FlowPaletteProps {
   onAddNode: (definitionId: string) => void;
@@ -60,15 +45,15 @@ export function FlowPalette({ onAddNode }: FlowPaletteProps) {
             {blockDefinitions
               .filter((b) => b.category === cat.key)
               .map((def) => (
-                <button
-                  key={def.id}
-                  onClick={() => onAddNode(def.id)}
-                  title={blockTooltips[def.id]}
-                  className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer select-none transition-all hover:scale-[1.02] hover:brightness-110 ${categoryColors[def.category]}`}
-                >
-                  <span className={`h-2 w-2 rounded-full ${dotColors[def.category]}`} />
-                  <span className="font-medium">{def.label}</span>
-                </button>
+                <BlockHoverCard key={def.id} definitionId={def.id} side="right">
+                  <button
+                    onClick={() => onAddNode(def.id)}
+                    className={`flex w-full items-center gap-2 rounded-md border px-3 py-2 text-sm cursor-pointer select-none transition-all hover:scale-[1.02] hover:brightness-110 ${categoryColors[def.category]}`}
+                  >
+                    <span className={`h-2 w-2 rounded-full ${dotColors[def.category]}`} />
+                    <span className="font-medium">{def.label}</span>
+                  </button>
+                </BlockHoverCard>
               ))}
           </div>
         </div>

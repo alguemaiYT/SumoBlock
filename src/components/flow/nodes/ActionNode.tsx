@@ -1,5 +1,6 @@
 import { Handle, Position, type NodeProps } from '@xyflow/react';
 import type { FlowNodeData } from '@/types/flow';
+import { BlockHoverCard } from '@/components/BlockHoverCard';
 
 export function ActionNode({ data, selected }: NodeProps) {
   const d = data as FlowNodeData;
@@ -9,6 +10,7 @@ export function ActionNode({ data, selected }: NodeProps) {
   const highlight = selected ? 'ring-2 ring-amber-400/70 shadow-[0_0_0_12px_rgba(251,191,36,0.35)]' : '';
 
   return (
+    <BlockHoverCard definitionId={d.definitionId} side="right">
     <div
       className={`relative min-w-[120px] rounded-lg border-2 border-[hsl(145,60%,45%)] bg-[hsl(145,60%,10%)] shadow-lg ${highlight}`}
     >
@@ -39,5 +41,6 @@ export function ActionNode({ data, selected }: NodeProps) {
         className="!bg-green-500 !w-3 !h-3 !border-2 !border-green-300"
       />
     </div>
+    </BlockHoverCard>
   );
 }
