@@ -164,6 +164,15 @@ const Index = () => {
                 onReset={sim.reset}
                 showSimulator={showSimulator}
                 onToggleShow={setShowSimulator}
+                onUpdateRobotSensor={sim.updateRobotSensor}
+                onUpdateOpponentSensor={sim.updateOpponentSensor}
+                onSetRobotConfig={sim.setRobotConfig}
+                onSetOpponentConfig={sim.setOpponentConfig}
+                opponentMode={sim.opponentMode}
+                onSetOpponentMode={sim.setOpponentMode}
+                opponentStrategyId={sim.opponentStrategyId}
+                onSetOpponentStrategyId={sim.setOpponentStrategyId}
+                strategies={editor.strategies}
               />
             }
           />
