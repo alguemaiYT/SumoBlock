@@ -8,9 +8,11 @@ import {
   type EdgeChange,
   MarkerType,
 } from '@xyflow/react';
-import { FlowNode, FlowEdge, FlowStrategy } from '@/types/flow';
+import { FlowNode, FlowEdge, FlowStrategy, StrategyBlock } from '@/types/flow';
 import { blockDefinitions, getDefinition } from '@/types/blocks';
 import { createUuid } from '@/lib/uuid';
+
+const STRATEGY_BLOCKS_STORAGE_KEY = 'sumoblocks.strategyBlocks.v1';
 
 function createStartNode(): FlowNode {
   return {
@@ -47,8 +49,64 @@ function isInfiniteRepeatNode(node?: FlowNode) {
   );
 }
 
+function cloneFlowGraph(nodes: FlowNode[], edges: FlowEdge[]) {
+  return {
+    nodes: nodes.map((node) => ({
+      ...node,
+      position: { ...node.position },
+      data: {
+        ...node.data,
+        params: node.data.params.map((param) => ({ ...param })),
+      },
+    })),
+    edges: edges.map((edge) => ({
+      ...edge,
+      data: edge.data ? { ...edge.data } : edge.data,
+      style: edge.style ? { ...edge.style } : edge.style,
+      markerEnd: edge.markerEnd ? { ...edge.markerEnd } : edge.markerEnd,
+      markerStart: edge.markerStart ? { ...edge.markerStart } : edge.markerStart,
+    })),
+  };
+}
+
+function createStrategyBlockFromStrategy(
+  strategy: FlowStrategy,
+  base?: Partial<StrategyBlock>
+): StrategyBlock {
+  const now = Date.now();
+  const { nodes, edges } = cloneFlowGraph(strategy.nodes, strategy.edges);
+  return {
+    id: base?.id ?? createUuid(),
+    name: base?.name ?? (strategy.name.trim() || 'Bloco de Estratégia'),
+    description: base?.description ?? strategy.description,
+    nodes,
+    edges,
+    createdAt: base?.createdAt ?? now,
+    updatedAt: now,
+  };
+}
+
 export function useFlowEditor() {
   const [strategies, setStrategies] = useState<FlowStrategy[]>([newFlowStrategy()]);
+  const [strategyBlocks, setStrategyBlocks] = useState<StrategyBlock[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const raw = window.localStorage.getItem(STRATEGY_BLOCKS_STORAGE_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw) as StrategyBlock[];
+      if (!Array.isArray(parsed)) return [];
+      return parsed.filter(
+        (block) =>
+          typeof block?.id === 'string' &&
+          typeof block?.name === 'string' &&
+          Array.isArray(block?.nodes) &&
+          Array.isArray(block?.edges)
+      );
+    } catch (error) {
+      console.error('Falha ao carregar blocos de estratégia salvos.', error);
+      return [];
+    }
+  });
   const [activeIndex, setActiveIndex] = useState(0);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNodeIds, setSelectedNodeIds] = useState<string[]>([]);
@@ -58,6 +116,18 @@ export function useFlowEditor() {
   const futureRef = useRef<FlowStrategy[][]>([]);
 
   const active = strategies[activeIndex];
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(
+        STRATEGY_BLOCKS_STORAGE_KEY,
+        JSON.stringify(strategyBlocks)
+      );
+    } catch (error) {
+      console.error('Falha ao salvar blocos de estratégia.', error);
+    }
+  }, [strategyBlocks]);
 
   useEffect(() => {
     if (!selectedNodeId) {
@@ -458,6 +528,143 @@ export function useFlowEditor() {
     [updateActive]
   );
 
+  const compactActiveAsStrategyBlock = useCallback(() => {
+    const fallbackName = `Bloco ${strategyBlocks.length + 1}`;
+    const block = createStrategyBlockFromStrategy(active, {
+      name: active.name.trim() || fallbackName,
+    });
+    setStrategyBlocks((prev) => [...prev, block]);
+  }, [active, strategyBlocks.length]);
+
+  const renameStrategyBlock = useCallback((blockId: string, name: string) => {
+    const nextName = name.trim();
+    if (!nextName) return;
+    setStrategyBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? { ...block, name: nextName, updatedAt: Date.now() }
+          : block
+      )
+    );
+  }, []);
+
+  const setStrategyBlockDescription = useCallback((blockId: string, description: string) => {
+    setStrategyBlocks((prev) =>
+      prev.map((block) =>
+        block.id === blockId
+          ? { ...block, description, updatedAt: Date.now() }
+          : block
+      )
+    );
+  }, []);
+
+  const removeStrategyBlock = useCallback((blockId: string) => {
+    setStrategyBlocks((prev) => prev.filter((block) => block.id !== blockId));
+  }, []);
+
+  const loadStrategyBlockIntoActive = useCallback(
+    (blockId: string) => {
+      const sourceBlock = strategyBlocks.find((block) => block.id === blockId);
+      if (!sourceBlock) return;
+      const { nodes, edges } = cloneFlowGraph(sourceBlock.nodes, sourceBlock.edges);
+      const normalizedNodes = nodes.some((node) => node.id === 'start')
+        ? nodes
+        : [createStartNode(), ...nodes];
+
+      pushHistory();
+      setStrategies((prev) =>
+        prev.map((strategy, index) =>
+          index === activeIndex
+            ? { ...strategy, nodes: normalizedNodes, edges }
+            : strategy
+        )
+      );
+      setSelectedNodeId(null);
+      setSelectedNodeIds([]);
+      setSelectedEdgeId(null);
+    },
+    [activeIndex, pushHistory, strategyBlocks]
+  );
+
+  const updateStrategyBlockFromActive = useCallback(
+    (blockId: string) => {
+      setStrategyBlocks((prev) =>
+        prev.map((block) => {
+          if (block.id !== blockId) return block;
+          return createStrategyBlockFromStrategy(active, {
+            id: block.id,
+            name: block.name,
+            description: block.description,
+            createdAt: block.createdAt,
+          });
+        })
+      );
+    },
+    [active]
+  );
+
+  const addStrategyBlockToCanvas = useCallback(
+    (blockId: string) => {
+      const sourceBlock = strategyBlocks.find((block) => block.id === blockId);
+      if (!sourceBlock) return;
+
+      const sourceNodes = sourceBlock.nodes.filter((node) => node.id !== 'start');
+      if (sourceNodes.length === 0) return;
+
+      const minX = sourceNodes.reduce(
+        (min, node) => Math.min(min, node.position.x),
+        sourceNodes[0].position.x
+      );
+      const minY = sourceNodes.reduce(
+        (min, node) => Math.min(min, node.position.y),
+        sourceNodes[0].position.y
+      );
+      const maxY = active.nodes.reduce((max, node) => Math.max(max, node.position.y), 0);
+      const xOffset = 260 - minX;
+      const yOffset = maxY + 130 - minY;
+      const idMap = new Map<string, string>();
+
+      const mappedNodes: FlowNode[] = sourceNodes.map((node) => {
+        const nextId = createUuid();
+        idMap.set(node.id, nextId);
+        return {
+          ...node,
+          id: nextId,
+          position: {
+            x: node.position.x + xOffset,
+            y: node.position.y + yOffset,
+          },
+          data: {
+            ...node.data,
+            linkGroupId: undefined,
+            linkActive: false,
+            params: node.data.params.map((param) => ({ ...param })),
+          },
+        };
+      });
+
+      const mappedEdges: FlowEdge[] = sourceBlock.edges
+        .filter((edge) => idMap.has(edge.source) && idMap.has(edge.target))
+        .map((edge) => ({
+          ...edge,
+          id: createUuid(),
+          source: idMap.get(edge.source)!,
+          target: idMap.get(edge.target)!,
+          data: edge.data ? { ...edge.data } : edge.data,
+          style: edge.style ? { ...edge.style } : edge.style,
+          markerEnd: edge.markerEnd ? { ...edge.markerEnd } : edge.markerEnd,
+          markerStart: edge.markerStart ? { ...edge.markerStart } : edge.markerStart,
+        }));
+
+      updateActive((strategy) => ({
+        ...strategy,
+        nodes: [...strategy.nodes, ...mappedNodes],
+        edges: [...strategy.edges, ...mappedEdges],
+      }));
+    },
+    [active.nodes, strategyBlocks, updateActive]
+  );
+
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
     futureRef.current.push(JSON.parse(JSON.stringify(strategies)));
@@ -551,6 +758,7 @@ export function useFlowEditor() {
 
   return {
     strategies,
+    strategyBlocks,
     active,
     activeIndex,
     setActiveIndex,
@@ -577,6 +785,13 @@ export function useFlowEditor() {
     setName,
     setDescription,
     clearNodes,
+    compactActiveAsStrategyBlock,
+    renameStrategyBlock,
+    setStrategyBlockDescription,
+    removeStrategyBlock,
+    loadStrategyBlockIntoActive,
+    updateStrategyBlockFromActive,
+    addStrategyBlockToCanvas,
     undo,
     redo,
     addTab,

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, type ReactNode } from 'react';
+import { useCallback, useMemo } from 'react';
 import {
   ReactFlow,
   Background,
@@ -37,10 +37,6 @@ interface FlowCanvasProps {
   onSelectNode: (nodeId: string | null) => void;
   onSelectEdge: (edgeId: string | null) => void;
   onSelectionChange: (nodeIds: string[], edgeIds: string[]) => void;
-  /** Show the built-in MiniMap (when simulator switch is off) */
-  showMiniMap?: boolean;
-  /** Slot rendered inside the ReactFlow panel area (simulator overlay) */
-  overlay?: ReactNode;
 }
 
 export function FlowCanvas({
@@ -52,8 +48,6 @@ export function FlowCanvas({
   onSelectNode,
   onSelectEdge,
   onSelectionChange,
-  showMiniMap = false,
-  overlay,
 }: FlowCanvasProps) {
   const memoNodeTypes = useMemo(() => nodeTypes, []);
 
@@ -124,7 +118,7 @@ export function FlowCanvas({
   );
 
   return (
-    <div className="relative flex-1 min-h-0 min-w-0">
+    <div className="flex-1 min-h-0 min-w-0">
       <ReactFlow
         nodes={nodes}
         edges={renderedEdges}
@@ -149,8 +143,7 @@ export function FlowCanvas({
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="#333" />
         <Controls className="!bg-card !border-border !shadow-lg [&>button]:!bg-card [&>button]:!border-border [&>button]:!text-foreground [&>button:hover]:!bg-accent" />
-        {showMiniMap && (
-          <MiniMap
+        <MiniMap
             className="!bg-card !border-border"
             nodeColor={(n) => {
               switch (n.type) {
@@ -163,9 +156,7 @@ export function FlowCanvas({
               }
             }}
           />
-        )}
       </ReactFlow>
-      {overlay}
     </div>
   );
 }

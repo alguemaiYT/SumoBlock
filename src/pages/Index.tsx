@@ -2,11 +2,9 @@ import { useState, useRef } from 'react';
 import { ReactFlowProvider } from '@xyflow/react';
 import Logo from '@/components/Logo';
 import { useFlowEditor } from '@/hooks/useFlowEditor';
-import { useSimulator } from '@/hooks/useSimulator';
 import { FlowCanvas } from '@/components/flow/FlowCanvas';
 import { FlowPalette } from '@/components/flow/FlowPalette';
 import { NodeInspector } from '@/components/flow/NodeInspector';
-import { SumoSimulator } from '@/components/SumoSimulator';
 import { exportFlowJSON, importFlowJSON } from '@/lib/flowExporter';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,10 +23,8 @@ import {
 
 const Index = () => {
   const editor = useFlowEditor();
-  const sim = useSimulator();
   const [panelOpen, setPanelOpen] = useState(true);
   const [panelMode, setPanelMode] = useState<'strategy' | 'inspector'>('inspector');
-  const [showSimulator, setShowSimulator] = useState(true);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const removableSelectionCount = editor.selectedNodeIds.filter((nodeId) => nodeId !== 'start').length;
 
@@ -139,7 +135,17 @@ const Index = () => {
         {/* Main content */}
         <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
           {/* Palette */}
-          <FlowPalette onAddNode={editor.addNode} />
+          <FlowPalette
+            onAddNode={editor.addNode}
+            strategyBlocks={editor.strategyBlocks}
+            onCreateStrategyBlock={editor.compactActiveAsStrategyBlock}
+            onUseStrategyBlock={editor.addStrategyBlockToCanvas}
+            onLoadStrategyBlock={editor.loadStrategyBlockIntoActive}
+            onUpdateStrategyBlock={editor.updateStrategyBlockFromActive}
+            onRenameStrategyBlock={editor.renameStrategyBlock}
+            onSetStrategyBlockDescription={editor.setStrategyBlockDescription}
+            onRemoveStrategyBlock={editor.removeStrategyBlock}
+          />
 
           {/* Flow Canvas */}
           <FlowCanvas
@@ -151,30 +157,6 @@ const Index = () => {
             onSelectNode={editor.selectNode}
             onSelectEdge={editor.selectEdge}
             onSelectionChange={editor.onSelectionChange}
-            showMiniMap={!showSimulator}
-            overlay={
-              <SumoSimulator
-                robotConfig={sim.robotConfig}
-                opponentConfig={sim.opponentConfig}
-                simState={sim.simState}
-                isFullscreen={sim.isFullscreen}
-                onToggleFullscreen={sim.toggleFullscreen}
-                onStart={sim.start}
-                onStop={sim.stop}
-                onReset={sim.reset}
-                showSimulator={showSimulator}
-                onToggleShow={setShowSimulator}
-                onUpdateRobotSensor={sim.updateRobotSensor}
-                onUpdateOpponentSensor={sim.updateOpponentSensor}
-                onSetRobotConfig={sim.setRobotConfig}
-                onSetOpponentConfig={sim.setOpponentConfig}
-                opponentMode={sim.opponentMode}
-                onSetOpponentMode={sim.setOpponentMode}
-                opponentStrategyId={sim.opponentStrategyId}
-                onSetOpponentStrategyId={sim.setOpponentStrategyId}
-                strategies={editor.strategies}
-              />
-            }
           />
 
           {/* Side panel */}

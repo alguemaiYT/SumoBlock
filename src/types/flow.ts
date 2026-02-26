@@ -22,3 +22,13 @@ export interface FlowStrategy {
   nodes: FlowNode[];
   edges: FlowEdge[];
 }
+
+export interface StrategyBlock {
+  id: string;
+  name: string;
+  description: string;
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+  createdAt: number;
+  updatedAt: number;
+}
