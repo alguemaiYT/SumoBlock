@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { blockDefinitions, BlockCategory } from '@/types/blocks';
 import { BlockHoverCard } from '@/components/BlockHoverCard';
-import type { StrategyBlock } from '@/types/flow';
+import { Textarea } from '@/components/ui/textarea';
+import type { FlowStrategy, StrategyBlock } from '@/types/flow';
 
 const categories: { key: BlockCategory; label: string; tooltip?: string }[] = [
   { key: 'sensor', label: 'Sensores', tooltip: 'Leituras do robô (distância, linha)' },
@@ -24,7 +25,6 @@ const dotColors: Record<string, string> = {
   gate: 'bg-purple-500',
 };
 
-
 interface FlowPaletteProps {
   onAddNode: (definitionId: string) => void;
   strategyBlocks: StrategyBlock[];
@@ -35,6 +35,13 @@ interface FlowPaletteProps {
   onRenameStrategyBlock: (blockId: string, name: string) => void;
   onSetStrategyBlockDescription: (blockId: string, description: string) => void;
   onRemoveStrategyBlock: (blockId: string) => void;
+  onGenerateWithAI: (prompt: string) => Promise<void> | void;
+  onApplyGeneratedStrategy: () => void;
+  onDiscardGeneratedStrategy: () => void;
+  generatedStrategy: FlowStrategy | null;
+  isGeneratingWithAI: boolean;
+  aiError: string | null;
+  hasGeminiApiKey: boolean;
 }
 
 export function FlowPalette({
@@ -47,8 +54,16 @@ export function FlowPalette({
   onRenameStrategyBlock,
   onSetStrategyBlockDescription,
   onRemoveStrategyBlock,
+  onGenerateWithAI,
+  onApplyGeneratedStrategy,
+  onDiscardGeneratedStrategy,
+  generatedStrategy,
+  isGeneratingWithAI,
+  aiError,
+  hasGeminiApiKey,
 }: FlowPaletteProps) {
-  const [tab, setTab] = useState<'default' | 'strategy'>('default');
+  const [tab, setTab] = useState<'default' | 'strategy' | 'ai'>('default');
+  const [aiPrompt, setAiPrompt] = useState('');
 
   const handleRename = (block: StrategyBlock) => {
     const nextName = window.prompt('Novo nome do bloco de estratégia:', block.name);
@@ -73,6 +88,10 @@ export function FlowPalette({
     onRemoveStrategyBlock(block.id);
   };
 
+  const handleGenerateAI = () => {
+    void onGenerateWithAI(aiPrompt);
+  };
+
   return (
     <aside className="w-full max-h-[260px] shrink-0 overflow-y-auto border-b border-border bg-card/30 p-3 md:w-56 md:max-h-none md:border-b-0 md:border-r">
       <div className="mb-3 flex gap-1 rounded-md border border-border bg-background/40 p-1">
@@ -94,14 +113,26 @@ export function FlowPalette({
               : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          Blocos de Estratégia
+          Estratégia
+        </button>
+        <button
+          onClick={() => setTab('ai')}
+          className={`flex-1 rounded px-2 py-1 text-[10px] font-semibold uppercase tracking-widest transition-colors ${
+            tab === 'ai'
+              ? 'bg-background text-foreground'
+              : 'text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          IA
         </button>
       </div>
 
       <p className="text-[10px] text-muted-foreground mb-3">
         {tab === 'default'
           ? 'Clique para adicionar ao fluxo'
-          : 'Compacte e reutilize estratégias'}
+          : tab === 'strategy'
+            ? 'Compacte e reutilize estratégias'
+            : 'Gere fluxo com prompt (Gemini)'}
       </p>
 
       {tab === 'default' ? (
@@ -130,7 +161,7 @@ export function FlowPalette({
             </div>
           </div>
         ))
-      ) : (
+      ) : tab === 'strategy' ? (
         <div className="space-y-2">
           <button
             onClick={onCreateStrategyBlock}
@@ -193,6 +224,60 @@ export function FlowPalette({
                 </div>
               </div>
             ))
+          )}
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {!hasGeminiApiKey && (
+            <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-2 py-2 text-[11px] text-amber-300">
+              Configure `VITE_GEMINI_API_KEY` para habilitar geração.
+            </p>
+          )}
+
+          <Textarea
+            value={aiPrompt}
+            onChange={(event) => setAiPrompt(event.target.value)}
+            placeholder="Ex: Estratégia agressiva para iniciar com busca circular e atacar ao detectar oponente na esquerda"
+            className="min-h-[120px] text-xs"
+          />
+
+          <button
+            onClick={handleGenerateAI}
+            disabled={!hasGeminiApiKey || isGeneratingWithAI || aiPrompt.trim().length === 0}
+            className="w-full rounded-md border border-primary/50 bg-primary/10 px-2 py-2 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            {isGeneratingWithAI ? 'Gerando estratégia...' : 'Gerar estratégia com IA'}
+          </button>
+
+          {aiError && (
+            <p className="rounded-md border border-red-500/40 bg-red-500/10 px-2 py-2 text-[11px] text-red-300">
+              {aiError}
+            </p>
+          )}
+
+          {generatedStrategy && (
+            <div className="rounded-md border border-border bg-background/40 p-2 text-[11px]">
+              <p className="font-semibold text-foreground">Prévia gerada</p>
+              <p className="text-foreground">{generatedStrategy.name}</p>
+              <p className="text-muted-foreground">{generatedStrategy.description || 'Sem descrição'}</p>
+              <p className="mt-1 text-muted-foreground">
+                {Math.max(generatedStrategy.nodes.length - 1, 0)} nós • {generatedStrategy.edges.length} ligações
+              </p>
+              <div className="mt-2 flex gap-1">
+                <button
+                  onClick={onApplyGeneratedStrategy}
+                  className="flex-1 rounded border border-green-500/50 px-2 py-1 text-[10px] text-green-300 hover:bg-green-500/10"
+                >
+                  Aplicar
+                </button>
+                <button
+                  onClick={onDiscardGeneratedStrategy}
+                  className="flex-1 rounded border border-border px-2 py-1 text-[10px] text-foreground hover:bg-accent"
+                >
+                  Descartar
+                </button>
+              </div>
+            </div>
           )}
         </div>
       )}

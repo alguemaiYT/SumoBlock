@@ -6,9 +6,11 @@ import { FlowCanvas } from '@/components/flow/FlowCanvas';
 import { FlowPalette } from '@/components/flow/FlowPalette';
 import { NodeInspector } from '@/components/flow/NodeInspector';
 import { exportFlowJSON, importFlowJSON } from '@/lib/flowExporter';
+import { generateFlowStrategyFromPrompt, hasGeminiApiKey } from '@/lib/geminiClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import type { FlowStrategy } from '@/types/flow';
 import {
   Undo2,
   Redo2,
@@ -25,8 +27,12 @@ const Index = () => {
   const editor = useFlowEditor();
   const [panelOpen, setPanelOpen] = useState(true);
   const [panelMode, setPanelMode] = useState<'strategy' | 'inspector'>('inspector');
+  const [generatedStrategy, setGeneratedStrategy] = useState<FlowStrategy | null>(null);
+  const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const removableSelectionCount = editor.selectedNodeIds.filter((nodeId) => nodeId !== 'start').length;
+  const geminiEnabled = hasGeminiApiKey();
 
   const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -38,6 +44,37 @@ const Index = () => {
       alert('Erro ao importar arquivo');
     }
     e.target.value = '';
+  };
+
+  const handleGenerateWithAI = async (prompt: string) => {
+    setAiError(null);
+    setGeneratedStrategy(null);
+
+    try {
+      setIsGeneratingWithAI(true);
+      const strategy = await generateFlowStrategyFromPrompt({
+        prompt,
+        currentStrategy: editor.active,
+      });
+      setGeneratedStrategy(strategy);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : 'Não foi possível gerar estratégia com IA.';
+      setAiError(message);
+    } finally {
+      setIsGeneratingWithAI(false);
+    }
+  };
+
+  const handleApplyGeneratedStrategy = () => {
+    if (!generatedStrategy) return;
+    editor.loadStrategy({ ...generatedStrategy, id: editor.active.id });
+    setGeneratedStrategy(null);
+    setAiError(null);
+  };
+
+  const handleDiscardGeneratedStrategy = () => {
+    setGeneratedStrategy(null);
   };
 
   return (
@@ -145,6 +182,13 @@ const Index = () => {
             onRenameStrategyBlock={editor.renameStrategyBlock}
             onSetStrategyBlockDescription={editor.setStrategyBlockDescription}
             onRemoveStrategyBlock={editor.removeStrategyBlock}
+            onGenerateWithAI={handleGenerateWithAI}
+            onApplyGeneratedStrategy={handleApplyGeneratedStrategy}
+            onDiscardGeneratedStrategy={handleDiscardGeneratedStrategy}
+            generatedStrategy={generatedStrategy}
+            isGeneratingWithAI={isGeneratingWithAI}
+            aiError={aiError}
+            hasGeminiApiKey={geminiEnabled}
           />
 
           {/* Flow Canvas */}

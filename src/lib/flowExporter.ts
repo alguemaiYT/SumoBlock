@@ -1,5 +1,14 @@
 import { FlowStrategy, FlowNode } from '@/types/flow';
 
+const FLOW_EXPORT_SCHEMA_VERSION = 1;
+
+export interface FlowExportPayload extends FlowStrategy {
+  schemaVersion: number;
+  readable: {
+    steps: string[];
+  };
+}
+
 function downloadFile(content: string, filename: string, mimeType: string) {
   const blob = new Blob([content], { type: mimeType });
   const url = URL.createObjectURL(blob);
@@ -10,13 +19,18 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
-export function exportFlowJSON(strategy: FlowStrategy) {
-  const payload = {
+export function buildFlowExportPayload(strategy: FlowStrategy): FlowExportPayload {
+  return {
     ...strategy,
+    schemaVersion: FLOW_EXPORT_SCHEMA_VERSION,
     readable: {
       steps: buildReadableFlow(strategy),
     },
   };
+}
+
+export function exportFlowJSON(strategy: FlowStrategy) {
+  const payload = buildFlowExportPayload(strategy);
   const json = JSON.stringify(payload, null, 2);
   downloadFile(json, `${strategy.name || 'estrategia'}.json`, 'application/json');
 }

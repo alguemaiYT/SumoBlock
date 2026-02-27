@@ -9,6 +9,13 @@ npm install
 npm run dev
 ```
 
+Para habilitar a geração por Gemini:
+
+```sh
+export VITE_GEMINI_API_KEY=\"sua_chave\"
+npm run dev
+```
+
 ## Scripts
 
 - `npm run dev` — ambiente de desenvolvimento
@@ -31,3 +38,4 @@ npm run dev
 - **Link LN de blocos:** selecione um nó e clique em “Criar link (ln)” no inspetor. Isso cria uma cópia referenciada (qualquer alteração em um dos clones afeta todos), mantém os nós arrastáveis de forma independente e desenha uma linha amarela pontilhada entre os links para facilitar a identificação visual. Use “Remover link” para apagar o atalho selecionado (ou, no nó original, remover seus atalhos).
 - **Remover ligações entre nós:** clique numa conexão no canvas e use “Remover ligação” no topo, ou use “Remover ligações do nó” no inspetor para cortar todas as conexões de entrada/saída do nó selecionado.
 - Agora também é possível linkar o próprio nó `Início`: isso cria um atalho perto do `Repetir` para conectar o laço sem precisar arrastar todos os cabos do topo do canvas.
+- Aba `IA` na paleta: envie um prompt para gerar uma estratégia (com prévia, aplicar/descartar e fallback quando a chave não estiver configurada).
