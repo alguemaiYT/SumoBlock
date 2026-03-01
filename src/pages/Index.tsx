@@ -21,6 +21,7 @@ import {
   X,
   PanelRightClose,
   PanelRightOpen,
+  Cpu,
 } from 'lucide-react';
 
 const Index = () => {
@@ -85,6 +86,11 @@ const Index = () => {
           <Logo />
           <h1 className="text-sm font-semibold tracking-wide text-foreground">SumoBlocks</h1>
           <span className="text-[10px] text-muted-foreground bg-primary/10 px-2 py-0.5 rounded-full">Flow</span>
+          <a href="/simulator" target="_blank" rel="noopener noreferrer">
+            <Button variant="outline" size="sm" className="gap-1 text-xs">
+              <Cpu className="h-3.5 w-3.5" /> Simulador
+            </Button>
+          </a>
           <div className="ml-auto flex flex-wrap items-center justify-end gap-1">
             <Button
               variant="ghost"
