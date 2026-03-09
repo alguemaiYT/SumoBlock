@@ -7,6 +7,11 @@ interface StrategySelectorProps {
   onSelect: (id: string | null) => void;
   label: string;
   accent: string;
+  extraOptions?: Array<{
+    id: string;
+    label: string;
+    description?: string;
+  }>;
 }
 
 export function StrategySelector({
@@ -15,6 +20,7 @@ export function StrategySelector({
   onSelect,
   label,
   accent,
+  extraOptions = [],
 }: StrategySelectorProps) {
   return (
     <div className="space-y-2">
@@ -22,25 +28,44 @@ export function StrategySelector({
         <Workflow className="h-3 w-3" /> Estratégia — {label}
       </h3>
 
-      {strategies.length === 0 ? (
-        <p className="text-[10px] text-muted-foreground italic px-1">
-          Nenhuma estratégia salva. Crie blocos de estratégia no editor principal para usá-los aqui.
-        </p>
-      ) : (
-        <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
-          {/* No strategy option */}
+      <div className="space-y-1 max-h-40 overflow-y-auto pr-1">
+        <button
+          onClick={() => onSelect(null)}
+          className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors truncate ${
+            selectedId === null
+              ? `${accent} font-medium`
+              : 'text-muted-foreground hover:bg-accent hover:text-foreground'
+          }`}
+        >
+          IA Padrão (sem estratégia)
+        </button>
+
+        {extraOptions.map((option) => (
           <button
-            onClick={() => onSelect(null)}
-            className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors truncate ${
-              selectedId === null
+            key={option.id}
+            onClick={() => onSelect(option.id)}
+            className={`w-full text-left rounded px-2 py-1.5 text-xs transition-colors ${
+              selectedId === option.id
                 ? `${accent} font-medium`
                 : 'text-muted-foreground hover:bg-accent hover:text-foreground'
             }`}
+            title={option.description || option.label}
           >
-            IA Padrão (sem estratégia)
+            {option.label}
+            {option.description && (
+              <span className="block text-[9px] text-muted-foreground/70">
+                {option.description}
+              </span>
+            )}
           </button>
+        ))}
 
-          {strategies.map((s) => (
+        {strategies.length === 0 ? (
+          <p className="px-1 text-[10px] italic text-muted-foreground">
+            Nenhuma estratégia salva. Crie blocos de estratégia no editor principal para usá-los aqui.
+          </p>
+        ) : (
+          strategies.map((s) => (
             <button
               key={s.id}
               onClick={() => onSelect(s.id)}
@@ -58,9 +83,9 @@ export function StrategySelector({
                 </span>
               )}
             </button>
-          ))}
-        </div>
-      )}
+          ))
+        )}
+      </div>
     </div>
   );
 }

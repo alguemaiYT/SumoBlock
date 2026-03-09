@@ -12,9 +12,11 @@ export type SensorPosition =
 /** Line sensor position on the bottom of the robot */
 export type LineSensorPosition =
   | 'bottom-front-left'
-  | 'bottom-front-right'
-  | 'bottom-rear-left'
-  | 'bottom-rear-right';
+  | 'bottom-front-right';
+
+export type OpponentBehaviorMode = 'ai' | 'idle';
+
+export const OPPONENT_IDLE_OPTION_ID = '__opponent_idle__';
 
 export interface ProximitySensor {
   id: string;
@@ -123,8 +125,6 @@ export function createDefaultLineSensors(prefix: string): LineSensor[] {
   return [
     { id: `${prefix}-lfl`, label: 'Linha Frontal Esq.', position: 'bottom-front-left', enabled: true, offsetX: -10, offsetY: -14, triggered: false },
     { id: `${prefix}-lfr`, label: 'Linha Frontal Dir.', position: 'bottom-front-right', enabled: true, offsetX: 10, offsetY: -14, triggered: false },
-    { id: `${prefix}-lrl`, label: 'Linha Traseira Esq.', position: 'bottom-rear-left', enabled: true, offsetX: -10, offsetY: 14, triggered: false },
-    { id: `${prefix}-lrr`, label: 'Linha Traseira Dir.', position: 'bottom-rear-right', enabled: true, offsetX: 10, offsetY: 14, triggered: false },
   ];
 }
 

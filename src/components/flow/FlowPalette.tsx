@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { blockDefinitions, BlockCategory } from '@/types/blocks';
 import { BlockHoverCard } from '@/components/BlockHoverCard';
 import { Textarea } from '@/components/ui/textarea';
+import type { GeminiGenerationDebugLog } from '@/lib/geminiClient';
 import type { FlowStrategy, StrategyBlock } from '@/types/flow';
 
 const categories: { key: BlockCategory; label: string; tooltip?: string }[] = [
@@ -41,6 +42,7 @@ interface FlowPaletteProps {
   generatedStrategy: FlowStrategy | null;
   isGeneratingWithAI: boolean;
   aiError: string | null;
+  aiDebugLog: GeminiGenerationDebugLog | null;
   hasGeminiApiKey: boolean;
 }
 
@@ -60,10 +62,12 @@ export function FlowPalette({
   generatedStrategy,
   isGeneratingWithAI,
   aiError,
+  aiDebugLog,
   hasGeminiApiKey,
 }: FlowPaletteProps) {
   const [tab, setTab] = useState<'default' | 'strategy' | 'ai'>('default');
   const [aiPrompt, setAiPrompt] = useState('');
+  const serializedDebugLog = aiDebugLog ? JSON.stringify(aiDebugLog, null, 2) : null;
 
   const handleRename = (block: StrategyBlock) => {
     const nextName = window.prompt('Novo nome do bloco de estratégia:', block.name);
@@ -278,6 +282,20 @@ export function FlowPalette({
                 </button>
               </div>
             </div>
+          )}
+
+          {serializedDebugLog && (
+            <details
+              className="rounded-md border border-border bg-background/40 p-2 text-[11px]"
+              open={Boolean(aiError)}
+            >
+              <summary className="cursor-pointer font-semibold text-foreground">
+                Logs completos da geração
+              </summary>
+              <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap break-all rounded border border-border bg-black/30 p-2 text-[10px] text-muted-foreground">
+                {serializedDebugLog}
+              </pre>
+            </details>
           )}
         </div>
       )}

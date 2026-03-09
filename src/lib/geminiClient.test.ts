@@ -1,5 +1,10 @@
-import { describe, expect, it } from 'vitest';
-import { buildFlowStrategyFromGeminiDraft } from '@/lib/geminiClient';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { buildFlowStrategyFromGeminiDraft, generateFlowStrategyFromPrompt } from '@/lib/geminiClient';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  delete process.env.GEMINI_API_KEY;
+});
 
 describe('buildFlowStrategyFromGeminiDraft', () => {
   it('maps nodes/edges with valid params and branch labels', () => {
@@ -72,5 +77,69 @@ describe('buildFlowStrategyFromGeminiDraft', () => {
         edges: [],
       })
     ).toThrow('A resposta da IA não trouxe nós válidos.');
+  });
+
+  it('returns debug logs together with the generated strategy', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          candidates: [
+            {
+              content: {
+                parts: [
+                  {
+                    text: JSON.stringify({
+                      name: 'Agressiva',
+                      description: 'Busca e ataque',
+                      nodes: [
+                        {
+                          id: 'sensor_1',
+                          definitionId: 'sensor_front',
+                          params: [{ name: 'detectando', value: true }],
+                        },
+                      ],
+                      edges: [],
+                    }),
+                  },
+                ],
+              },
+            },
+          ],
+        }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const result = await generateFlowStrategyFromPrompt({ prompt: 'buscar e atacar' });
+
+    expect(result.strategy.name).toBe('Agressiva');
+    expect(result.debugLog.responseStatus).toBe(200);
+    expect(result.debugLog.responseOk).toBe(true);
+    expect(result.debugLog.requestBody).toBeTruthy();
+    expect(result.debugLog.generatedStrategy?.name).toBe('Agressiva');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('attaches debug logs to API failures', async () => {
+    process.env.GEMINI_API_KEY = 'test-key';
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValue({
+        ok: false,
+        status: 500,
+        text: async () => JSON.stringify({ error: { message: 'boom' } }),
+      }),
+    );
+
+    await expect(generateFlowStrategyFromPrompt({ prompt: 'falhar' })).rejects.toMatchObject({
+      message: 'boom',
+      debugLog: expect.objectContaining({
+        responseStatus: 500,
+        responseOk: false,
+        error: 'boom',
+      }),
+    });
   });
 });

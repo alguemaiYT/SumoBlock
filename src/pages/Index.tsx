@@ -6,7 +6,12 @@ import { FlowCanvas } from '@/components/flow/FlowCanvas';
 import { FlowPalette } from '@/components/flow/FlowPalette';
 import { NodeInspector } from '@/components/flow/NodeInspector';
 import { exportFlowJSON, importFlowJSON } from '@/lib/flowExporter';
-import { generateFlowStrategyFromPrompt, hasGeminiApiKey } from '@/lib/geminiClient';
+import {
+  type GeminiGenerationDebugLog,
+  GeminiGenerationError,
+  generateFlowStrategyFromPrompt,
+  hasGeminiApiKey,
+} from '@/lib/geminiClient';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -31,6 +36,7 @@ const Index = () => {
   const [generatedStrategy, setGeneratedStrategy] = useState<FlowStrategy | null>(null);
   const [isGeneratingWithAI, setIsGeneratingWithAI] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+  const [aiDebugLog, setAiDebugLog] = useState<GeminiGenerationDebugLog | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const removableSelectionCount = editor.selectedNodeIds.filter((nodeId) => nodeId !== 'start').length;
   const geminiEnabled = hasGeminiApiKey();
@@ -50,17 +56,22 @@ const Index = () => {
   const handleGenerateWithAI = async (prompt: string) => {
     setAiError(null);
     setGeneratedStrategy(null);
+    setAiDebugLog(null);
 
     try {
       setIsGeneratingWithAI(true);
-      const strategy = await generateFlowStrategyFromPrompt({
+      const { strategy, debugLog } = await generateFlowStrategyFromPrompt({
         prompt,
         currentStrategy: editor.active,
       });
       setGeneratedStrategy(strategy);
+      setAiDebugLog(debugLog);
     } catch (error) {
       const message =
         error instanceof Error ? error.message : 'Não foi possível gerar estratégia com IA.';
+      if (error instanceof GeminiGenerationError) {
+        setAiDebugLog(error.debugLog);
+      }
       setAiError(message);
     } finally {
       setIsGeneratingWithAI(false);
@@ -194,6 +205,7 @@ const Index = () => {
             generatedStrategy={generatedStrategy}
             isGeneratingWithAI={isGeneratingWithAI}
             aiError={aiError}
+            aiDebugLog={aiDebugLog}
             hasGeminiApiKey={geminiEnabled}
           />
 

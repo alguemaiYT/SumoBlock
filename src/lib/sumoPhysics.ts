@@ -2,6 +2,7 @@
 // SumoBlocks — Physics engine for the simulator
 // ============================================
 import {
+  type OpponentBehaviorMode,
   type SumoRobotConfig,
   type RobotState,
   type SimState,
@@ -234,6 +235,7 @@ export function stepSimulation(
   prev: SimState,
   robotCfg: SumoRobotConfig,
   opponentCfg: SumoRobotConfig,
+  opponentBehavior: OpponentBehaviorMode = 'ai',
 ): SimState {
   if (prev.status !== 'running') return prev;
 
@@ -286,23 +288,27 @@ export function stepSimulation(
     }
   }
 
-  // Opponent AI: chase the robot
-  const dx = r.x - o.x;
-  const dy = r.y - o.y;
-  const targetAngle = Math.atan2(dx, -dy) * RAD2DEG;
-  let angleDiff = targetAngle - o.rotation;
-  while (angleDiff > 180) angleDiff -= 360;
-  while (angleDiff < -180) angleDiff += 360;
+  let oLeftSpeed = 0;
+  let oRightSpeed = 0;
 
-  let oLeftSpeed = BASE_SPEED * 0.85;
-  let oRightSpeed = BASE_SPEED * 0.85;
+  if (opponentBehavior === 'ai') {
+    const dx = r.x - o.x;
+    const dy = r.y - o.y;
+    const targetAngle = Math.atan2(dx, -dy) * RAD2DEG;
+    let angleDiff = targetAngle - o.rotation;
+    while (angleDiff > 180) angleDiff -= 360;
+    while (angleDiff < -180) angleDiff += 360;
 
-  if (angleDiff > 5) {
     oLeftSpeed = BASE_SPEED * 0.85;
-    oRightSpeed = BASE_SPEED * 0.3;
-  } else if (angleDiff < -5) {
-    oLeftSpeed = BASE_SPEED * 0.3;
     oRightSpeed = BASE_SPEED * 0.85;
+
+    if (angleDiff > 5) {
+      oLeftSpeed = BASE_SPEED * 0.85;
+      oRightSpeed = BASE_SPEED * 0.3;
+    } else if (angleDiff < -5) {
+      oLeftSpeed = BASE_SPEED * 0.3;
+      oRightSpeed = BASE_SPEED * 0.85;
+    }
   }
 
   // Check opponent line sensors
@@ -311,7 +317,7 @@ export function stepSimulation(
     const [wx, wy] = lineSensorWorldPos(opponentCfg, o, ls.offsetX, ls.offsetY);
     const onBorder = isOnWhiteBorder(wx, wy);
     opponentReadings[ls.id] = onBorder;
-    if (onBorder) {
+    if (opponentBehavior === 'ai' && onBorder) {
       if (ls.offsetY < 0) {
         oLeftSpeed = -BASE_SPEED * 0.85;
         oRightSpeed = -BASE_SPEED * 0.5;

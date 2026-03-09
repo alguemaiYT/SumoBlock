@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import {
+  OPPONENT_IDLE_OPTION_ID,
   type SumoRobotConfig,
   type ProximitySensor,
   type LineSensor,
@@ -49,9 +50,14 @@ export function useSumoSimulator() {
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const robotCfgRef = useRef(robotCfg);
   const opponentCfgRef = useRef(opponentCfg);
+  const opponentBehaviorRef = useRef<'ai' | 'idle'>('ai');
 
   useEffect(() => { robotCfgRef.current = robotCfg; }, [robotCfg]);
   useEffect(() => { opponentCfgRef.current = opponentCfg; }, [opponentCfg]);
+  useEffect(() => {
+    opponentBehaviorRef.current =
+      opponentStrategyId === OPPONENT_IDLE_OPTION_ID ? 'idle' : 'ai';
+  }, [opponentStrategyId]);
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -61,7 +67,14 @@ export function useSumoSimulator() {
   }, []);
 
   const tick = useCallback(() => {
-    setSimState((prev) => stepSimulation(prev, robotCfgRef.current, opponentCfgRef.current));
+    setSimState((prev) =>
+      stepSimulation(
+        prev,
+        robotCfgRef.current,
+        opponentCfgRef.current,
+        opponentBehaviorRef.current,
+      ),
+    );
   }, []);
 
   const start = useCallback(() => {
@@ -155,5 +168,6 @@ export function useSumoSimulator() {
     setRobotStrategyId,
     opponentStrategyId,
     setOpponentStrategyId,
+    opponentBehavior: opponentStrategyId === OPPONENT_IDLE_OPTION_ID ? 'idle' : 'ai',
   };
 }

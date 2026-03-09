@@ -4,11 +4,21 @@ import { RobotConfigurator } from '@/components/simulator/RobotConfigurator';
 import { BottomView } from '@/components/simulator/BottomView';
 import { StrategySelector } from '@/components/simulator/StrategySelector';
 import { Button } from '@/components/ui/button';
+import { OPPONENT_IDLE_OPTION_ID } from '@/types/sumosim';
 import { Play, Square, RotateCcw, Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 export default function SimulatorPage() {
   const sim = useSumoSimulator();
+  const robotStrategyLabel = sim.robotStrategyId
+    ? sim.strategyBlocks.find((s) => s.id === sim.robotStrategyId)?.name ?? 'IA'
+    : 'IA Padrão';
+  const opponentStrategyLabel =
+    sim.opponentStrategyId === OPPONENT_IDLE_OPTION_ID
+      ? 'Parado'
+      : sim.opponentStrategyId
+        ? sim.strategyBlocks.find((s) => s.id === sim.opponentStrategyId)?.name ?? 'IA'
+        : 'IA Padrão';
 
   return (
     <div className="flex h-screen flex-col bg-background text-foreground overflow-hidden">
@@ -74,9 +84,9 @@ export default function SimulatorPage() {
         )}
         {/* Show selected strategies */}
         <span className="ml-auto text-[10px]">
-          Robô: {sim.robotStrategyId ? sim.strategyBlocks.find(s => s.id === sim.robotStrategyId)?.name ?? 'IA' : 'IA Padrão'}
+          Robô: {robotStrategyLabel}
           {' · '}
-          Oponente: {sim.opponentStrategyId ? sim.strategyBlocks.find(s => s.id === sim.opponentStrategyId)?.name ?? 'IA' : 'IA Padrão'}
+          Oponente: {opponentStrategyLabel}
         </span>
       </div>
 
@@ -129,6 +139,13 @@ export default function SimulatorPage() {
               onSelect={sim.setOpponentStrategyId}
               label="Oponente"
               accent="bg-red-900/60 text-red-300"
+              extraOptions={[
+                {
+                  id: OPPONENT_IDLE_OPTION_ID,
+                  label: 'Parado',
+                  description: 'Mantém o oponente sem acionar as rodas.',
+                },
+              ]}
             />
           </div>
           <RobotConfigurator

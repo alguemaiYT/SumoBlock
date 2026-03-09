@@ -1,0 +1,9 @@
+{
+  "servers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npm",
+      "args": ["run", "mcp", "--", "--headless", "--isolated"]
+    }
+  }
+}

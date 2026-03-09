@@ -104,9 +104,9 @@ export function RobotConfigurator({
       </Section>
 
       {/* ── Line Sensors ───────────────────────────────────────── */}
-      <Section title="Sensores de Linha (Inferior)">
+      <Section title="Sensores de Linha (Inferior / frontal)">
         <p className="text-[10px] text-muted-foreground mb-1">
-          Posicionados na parte inferior do robô — use a "Vista inferior" para visualizar.
+          Somente sensores frontais são usados na vista inferior e na lógica de borda.
         </p>
         {config.lineSensors.map((sensor) => (
           <div key={sensor.id} className="rounded border border-border bg-background/40 p-2 text-xs space-y-1.5">

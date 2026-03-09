@@ -71,6 +71,38 @@ type GeminiResponse = {
   };
 };
 
+export interface GeminiGenerationDebugLog {
+  endpoint: string;
+  model: string;
+  prompt: string;
+  strategySummary: string;
+  requestBody?: unknown;
+  responseStatus?: number;
+  responseOk?: boolean;
+  responseText?: string;
+  responsePayload?: unknown;
+  extractedJson?: string;
+  parsedDraft?: unknown;
+  generatedStrategy?: FlowStrategy;
+  error?: string;
+}
+
+export interface GenerateFlowStrategyResult {
+  strategy: FlowStrategy;
+  debugLog: GeminiGenerationDebugLog;
+}
+
+export class GeminiGenerationError extends Error {
+  debugLog: GeminiGenerationDebugLog;
+
+  constructor(message: string, debugLog: GeminiGenerationDebugLog) {
+    super(message);
+    this.name = 'GeminiGenerationError';
+    Object.setPrototypeOf(this, GeminiGenerationError.prototype);
+    this.debugLog = debugLog;
+  }
+}
+
 const GEMINI_RESPONSE_SCHEMA = {
   type: 'OBJECT',
   properties: {
@@ -468,15 +500,23 @@ export async function generateFlowStrategyFromPrompt({
   prompt: string;
   currentStrategy?: FlowStrategy;
   signal?: AbortSignal;
-}) {
+}): Promise<GenerateFlowStrategyResult> {
+  const debugLog: GeminiGenerationDebugLog = {
+    endpoint: GEMINI_ENDPOINT,
+    model: GEMINI_MODEL,
+    prompt,
+    strategySummary: summarizeCurrentStrategy(currentStrategy),
+  };
   const apiKey = resolveGeminiApiKey();
   if (!apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY/GEMINI_API_KEY não configurada.');
+    debugLog.error = 'VITE_GEMINI_API_KEY/GEMINI_API_KEY não configurada.';
+    throw new GeminiGenerationError(debugLog.error, debugLog);
   }
 
   const userPrompt = prompt.trim();
   if (!userPrompt) {
-    throw new Error('Digite um prompt para gerar a estratégia.');
+    debugLog.error = 'Digite um prompt para gerar a estratégia.';
+    throw new GeminiGenerationError(debugLog.error, debugLog);
   }
 
   const requestBody = {
@@ -499,6 +539,7 @@ export async function generateFlowStrategyFromPrompt({
       responseSchema: GEMINI_RESPONSE_SCHEMA,
     },
   };
+  debugLog.requestBody = requestBody;
 
   const response = await fetch(GEMINI_ENDPOINT, {
     method: 'POST',
@@ -510,13 +551,38 @@ export async function generateFlowStrategyFromPrompt({
     signal,
   });
 
-  const payload = (await response.json().catch(() => ({}))) as GeminiResponse;
+  debugLog.responseStatus = response.status;
+  debugLog.responseOk = response.ok;
+  debugLog.responseText = await response.text();
+
+  let payload: GeminiResponse = {};
+  if (debugLog.responseText) {
+    try {
+      payload = JSON.parse(debugLog.responseText) as GeminiResponse;
+    } catch {
+      payload = {};
+    }
+  }
+  debugLog.responsePayload = payload;
 
   if (!response.ok) {
-    throw new Error(payload.error?.message || `Falha na API Gemini (${response.status}).`);
+    const message = payload.error?.message || `Falha na API Gemini (${response.status}).`;
+    debugLog.error = message;
+    throw new GeminiGenerationError(message, debugLog);
   }
 
-  const rawJson = extractJsonText(payload);
-  const parsed = JSON.parse(rawJson);
-  return buildFlowStrategyFromGeminiDraft(parsed);
+  try {
+    const rawJson = extractJsonText(payload);
+    debugLog.extractedJson = rawJson;
+    const parsed = JSON.parse(rawJson);
+    debugLog.parsedDraft = parsed;
+    const strategy = buildFlowStrategyFromGeminiDraft(parsed);
+    debugLog.generatedStrategy = strategy;
+    return { strategy, debugLog };
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : 'Não foi possível processar a resposta da IA.';
+    debugLog.error = message;
+    throw new GeminiGenerationError(message, debugLog);
+  }
 }
