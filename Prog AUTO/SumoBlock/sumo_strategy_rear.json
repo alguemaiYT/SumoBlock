@@ -1,0 +1,359 @@
+{
+  "id": "rear-approach-strategy",
+  "name": "Aproximação lateral atrás",
+  "description": "Detecta o oponente com ambos sensores frontais e executa giro + avanço, depois ajusta pela lateral até alcançar a traseira.",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "startNode",
+      "position": {
+        "x": 0,
+        "y": 0
+      },
+      "data": {
+        "definitionId": "start",
+        "label": "Início",
+        "category": "start",
+        "params": []
+      }
+    },
+    {
+      "id": "sensor-front-left",
+      "type": "sensorNode",
+      "position": {
+        "x": -140,
+        "y": 140
+      },
+      "data": {
+        "definitionId": "sensor_front",
+        "label": "Sensor Frontal Esquerdo",
+        "category": "sensor",
+        "params": [
+          {
+            "name": "detectando",
+            "type": "boolean",
+            "value": true
+          },
+          {
+            "name": "lado",
+            "type": "select",
+            "value": "esquerdo",
+            "options": [
+              "esquerdo",
+              "direito"
+            ]
+          },
+          {
+            "name": "distância",
+            "type": "number",
+            "value": 18,
+            "unit": "cm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "sensor-front-right",
+      "type": "sensorNode",
+      "position": {
+        "x": 140,
+        "y": 140
+      },
+      "data": {
+        "definitionId": "sensor_front",
+        "label": "Sensor Frontal Direito",
+        "category": "sensor",
+        "params": [
+          {
+            "name": "detectando",
+            "type": "boolean",
+            "value": true
+          },
+          {
+            "name": "lado",
+            "type": "select",
+            "value": "direito",
+            "options": [
+              "esquerdo",
+              "direito"
+            ]
+          },
+          {
+            "name": "distância",
+            "type": "number",
+            "value": 18,
+            "unit": "cm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "gate-front-both",
+      "type": "gateNode",
+      "position": {
+        "x": 170,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "gate_and",
+        "label": "E (AND)",
+        "category": "gate",
+        "params": []
+      }
+    },
+    {
+      "id": "action-turn-right",
+      "type": "actionNode",
+      "position": {
+        "x": 340,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "action_turn_right",
+        "label": "Girar Direita",
+        "category": "action",
+        "params": [
+          {
+            "name": "tempo",
+            "type": "number",
+            "value": 420,
+            "unit": "ms"
+          }
+        ]
+      }
+    },
+    {
+      "id": "action-forward",
+      "type": "actionNode",
+      "position": {
+        "x": 520,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "action_forward",
+        "label": "Frente",
+        "category": "action",
+        "params": [
+          {
+            "name": "tempo",
+            "type": "number",
+            "value": 520,
+            "unit": "ms"
+          },
+          {
+            "name": "velocidade",
+            "type": "number",
+            "value": 210
+          }
+        ]
+      }
+    },
+    {
+      "id": "sensor-side-right",
+      "type": "sensorNode",
+      "position": {
+        "x": 700,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "sensor_side",
+        "label": "Sensor Lateral Direito",
+        "category": "sensor",
+        "params": [
+          {
+            "name": "detectando",
+            "type": "boolean",
+            "value": true
+          },
+          {
+            "name": "lado",
+            "type": "select",
+            "value": "direito",
+            "options": [
+              "esquerdo",
+              "direito"
+            ]
+          },
+          {
+            "name": "distância",
+            "type": "number",
+            "value": 10,
+            "unit": "cm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "action-turn-left",
+      "type": "actionNode",
+      "position": {
+        "x": 880,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "action_turn_left",
+        "label": "Girar Esquerda",
+        "category": "action",
+        "params": [
+          {
+            "name": "tempo",
+            "type": "number",
+            "value": 300,
+            "unit": "ms"
+          }
+        ]
+      }
+    },
+    {
+      "id": "action-forward-adjust",
+      "type": "actionNode",
+      "position": {
+        "x": 1060,
+        "y": 300
+      },
+      "data": {
+        "definitionId": "action_forward",
+        "label": "Frente (Ajuste)",
+        "category": "action",
+        "params": [
+          {
+            "name": "tempo",
+            "type": "number",
+            "value": 280,
+            "unit": "ms"
+          },
+          {
+            "name": "velocidade",
+            "type": "number",
+            "value": 180
+          }
+        ]
+      }
+    },
+    {
+      "id": "sensor-side-left",
+      "type": "sensorNode",
+      "position": {
+        "x": 700,
+        "y": 460
+      },
+      "data": {
+        "definitionId": "sensor_side",
+        "label": "Sensor Lateral Esquerdo",
+        "category": "sensor",
+        "params": [
+          {
+            "name": "detectando",
+            "type": "boolean",
+            "value": true
+          },
+          {
+            "name": "lado",
+            "type": "select",
+            "value": "esquerdo",
+            "options": [
+              "esquerdo",
+              "direito"
+            ]
+          },
+          {
+            "name": "distância",
+            "type": "number",
+            "value": 10,
+            "unit": "cm"
+          }
+        ]
+      }
+    },
+    {
+      "id": "action-stop",
+      "type": "actionNode",
+      "position": {
+        "x": 880,
+        "y": 460
+      },
+      "data": {
+        "definitionId": "action_stop",
+        "label": "Parar",
+        "category": "action",
+        "params": []
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start-front-left",
+      "source": "start",
+      "target": "sensor-front-left"
+    },
+    {
+      "id": "e-start-front-right",
+      "source": "start",
+      "target": "sensor-front-right"
+    },
+    {
+      "id": "e-front-left-to-gate",
+      "source": "sensor-front-left",
+      "sourceHandle": "yes",
+      "target": "gate-front-both",
+      "targetHandle": "in-0"
+    },
+    {
+      "id": "e-front-right-to-gate",
+      "source": "sensor-front-right",
+      "sourceHandle": "yes",
+      "target": "gate-front-both",
+      "targetHandle": "in-1"
+    },
+    {
+      "id": "e-gate-to-turn-right",
+      "source": "gate-front-both",
+      "sourceHandle": "yes",
+      "target": "action-turn-right"
+    },
+    {
+      "id": "e-turn-right-to-forward",
+      "source": "action-turn-right",
+      "target": "action-forward"
+    },
+    {
+      "id": "e-forward-to-side-right",
+      "source": "action-forward",
+      "target": "sensor-side-right"
+    },
+    {
+      "id": "e-side-right-yes",
+      "source": "sensor-side-right",
+      "sourceHandle": "yes",
+      "target": "action-turn-left"
+    },
+    {
+      "id": "e-side-right-no",
+      "source": "sensor-side-right",
+      "sourceHandle": "no",
+      "target": "sensor-side-left"
+    },
+    {
+      "id": "e-turn-left-to-adjust-forward",
+      "source": "action-turn-left",
+      "target": "action-forward-adjust"
+    },
+    {
+      "id": "e-adjust-forward-to-side-right",
+      "source": "action-forward-adjust",
+      "target": "sensor-side-right"
+    },
+    {
+      "id": "e-side-left-yes",
+      "source": "sensor-side-left",
+      "sourceHandle": "yes",
+      "target": "action-forward-adjust"
+    },
+    {
+      "id": "e-side-left-no",
+      "source": "sensor-side-left",
+      "sourceHandle": "no",
+      "target": "action-stop"
+    }
+  ]
+}
