@@ -15,7 +15,8 @@ if [ "$OPEN" = "true" ] || [ "$OPEN" = "1" ]; then
 else
   OPEN_FLAG=""
 fi
-
-echo "Starting Vite dev server on ${HOST}:${PORT} (open=${OPEN})"
+echo "Instalando dependencias necessarias para execução do servidor..."
+npm install
+echo "Iniciando servidor no IP${HOST}:${PORT} (open=${OPEN})"
 # Use npm script so project-local vite binary is used; forward extra flags
 npm run dev -- --host "$HOST" --port "$PORT" --strictPort $OPEN_FLAG
