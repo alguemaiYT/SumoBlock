@@ -39,3 +39,21 @@ npm run dev
 - **Remover ligações entre nós:** clique numa conexão no canvas e use “Remover ligação” no topo, ou use “Remover ligações do nó” no inspetor para cortar todas as conexões de entrada/saída do nó selecionado.
 - Agora também é possível linkar o próprio nó `Início`: isso cria um atalho perto do `Repetir` para conectar o laço sem precisar arrastar todos os cabos do topo do canvas.
 - Aba `IA` na paleta: envie um prompt para gerar uma estratégia (com prévia, aplicar/descartar e fallback quando a chave não estiver configurada).
+
+## Melhorias para facilitar criação de estratégias
+
+### Experiência do usuário (ideal)
+
+- Oferecer dois modos: `Guiado` (para iniciantes) e `Avançado` (fluxo livre).
+- Começar por objetivo (ex.: buscar e atacar) e aplicar templates prontos com blocos já conectados.
+- Exibir validação contínua do grafo com sugestão de correção (não só erro bloqueante).
+- Incluir presets de parâmetros (agressivo, equilibrado, defensivo) para reduzir tentativa e erro.
+
+### Resumo dinâmico ideal para export `.ino`
+
+- Seleção de perfil/versionamento de firmware (ex.: `Prog AUTO ESP32 V2`).
+- Compilação do fluxo via AST do grafo, evitando geração por concatenação frágil de strings.
+- Mapeamento configurável `bloco -> função C++` por perfil.
+- Guard rails automáticos no código gerado: `Le_Sensores()`, `le_stop()`, limites de velocidade/tempo.
+- Diagnóstico de exportação com incompatibilidades e sugestões práticas.
+- Opção de geração não-bloqueante para reduzir dependência de `delay` longo.
