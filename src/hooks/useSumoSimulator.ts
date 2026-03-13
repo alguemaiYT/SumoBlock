@@ -25,13 +25,14 @@ function loadStrategyBlocks(): StrategyBlock[] {
 }
 
 export function useSumoSimulator() {
+  const initialSimState = createInitialSimState();
   const [robotCfg, setRobotCfg] = useState<SumoRobotConfig>(() =>
     createDefaultRobot('Meu Robô', '#3b82f6', 'r'),
   );
   const [opponentCfg, setOpponentCfg] = useState<SumoRobotConfig>(() =>
     createDefaultRobot('Oponente', '#ef4444', 'op'),
   );
-  const [simState, setSimState] = useState<SimState>(createInitialSimState);
+  const [simSnapshot, setSimSnapshot] = useState<SimState>(initialSimState);
   const [showBottomView, setShowBottomView] = useState(false);
 
   // Strategy selection
@@ -39,15 +40,11 @@ export function useSumoSimulator() {
   const [robotStrategyId, setRobotStrategyId] = useState<string | null>(null);
   const [opponentStrategyId, setOpponentStrategyId] = useState<string | null>(null);
 
-  // Refresh strategies from localStorage periodically (in case user edits in the other tab)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setStrategyBlocks(loadStrategyBlocks());
-    }, 2000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const simStateRef = useRef<SimState>(initialSimState);
+  const rafRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
+  const accumulatorRef = useRef(0);
+  const lastUiUpdateRef = useRef(0);
   const robotCfgRef = useRef(robotCfg);
   const opponentCfgRef = useRef(opponentCfg);
   const opponentBehaviorRef = useRef<'ai' | 'idle'>('ai');
@@ -59,44 +56,114 @@ export function useSumoSimulator() {
       opponentStrategyId === OPPONENT_IDLE_OPTION_ID ? 'idle' : 'ai';
   }, [opponentStrategyId]);
 
-  const stopTimer = useCallback(() => {
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-      timerRef.current = null;
-    }
+  // Refresh strategies from localStorage when other tabs update it
+  useEffect(() => {
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key === STRATEGY_BLOCKS_STORAGE_KEY) {
+        setStrategyBlocks(loadStrategyBlocks());
+      }
+    };
+    const handleVisibility = () => {
+      if (!document.hidden) {
+        setStrategyBlocks(loadStrategyBlocks());
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      document.removeEventListener('visibilitychange', handleVisibility);
+    };
   }, []);
 
-  const tick = useCallback(() => {
-    setSimState((prev) =>
-      stepSimulation(
-        prev,
+  const stopLoop = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    lastTimeRef.current = null;
+    accumulatorRef.current = 0;
+  }, []);
+
+  const updateSnapshotIfNeeded = useCallback((now: number) => {
+    if (now - lastUiUpdateRef.current < 100) return;
+    lastUiUpdateRef.current = now;
+    setSimSnapshot(simStateRef.current);
+  }, []);
+
+  const runFrame = useCallback((now: number) => {
+    if (rafRef.current === null) return;
+    if (lastTimeRef.current === null) {
+      lastTimeRef.current = now;
+    }
+
+    const delta = now - lastTimeRef.current;
+    lastTimeRef.current = now;
+    accumulatorRef.current += delta;
+
+    let steps = 0;
+    while (accumulatorRef.current >= TICK_MS && steps < 5) {
+      const next = stepSimulation(
+        simStateRef.current,
         robotCfgRef.current,
         opponentCfgRef.current,
         opponentBehaviorRef.current,
-      ),
-    );
-  }, []);
+      );
+      simStateRef.current = next;
+      accumulatorRef.current -= TICK_MS;
+      steps += 1;
+
+      if (next.status !== 'running') {
+        setSimSnapshot(next);
+        stopLoop();
+        return;
+      }
+    }
+
+    updateSnapshotIfNeeded(now);
+    if (!document.hidden && simStateRef.current.status === 'running') {
+      rafRef.current = requestAnimationFrame(runFrame);
+    } else {
+      stopLoop();
+    }
+  }, [stopLoop, updateSnapshotIfNeeded]);
 
   const start = useCallback(() => {
-    stopTimer();
-    setSimState((prev) => ({ ...prev, status: 'running' }));
-    timerRef.current = setInterval(tick, TICK_MS);
-  }, [tick, stopTimer]);
+    stopLoop();
+    simStateRef.current = { ...simStateRef.current, status: 'running' };
+    setSimSnapshot(simStateRef.current);
+    lastUiUpdateRef.current = 0;
+    if (!document.hidden) {
+      rafRef.current = requestAnimationFrame(runFrame);
+    }
+  }, [runFrame, stopLoop]);
 
   const stop = useCallback(() => {
-    stopTimer();
-    setSimState((prev) => ({ ...prev, status: 'paused' }));
-  }, [stopTimer]);
+    stopLoop();
+    simStateRef.current = { ...simStateRef.current, status: 'paused' };
+    setSimSnapshot(simStateRef.current);
+  }, [stopLoop]);
 
   const reset = useCallback(() => {
-    stopTimer();
-    setSimState(createInitialSimState());
-  }, [stopTimer]);
+    stopLoop();
+    const next = createInitialSimState();
+    simStateRef.current = next;
+    setSimSnapshot(next);
+  }, [stopLoop]);
 
-  useEffect(() => stopTimer, [stopTimer]);
+  useEffect(() => () => stopLoop(), [stopLoop]);
   useEffect(() => {
-    if (simState.status === 'finished') stopTimer();
-  }, [simState.status, stopTimer]);
+    const handleVisibility = () => {
+      if (!document.hidden && simStateRef.current.status === 'running' && rafRef.current === null) {
+        rafRef.current = requestAnimationFrame(runFrame);
+      } else if (document.hidden) {
+        stopLoop();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [runFrame, stopLoop]);
 
   // ── Config updaters ────────────────────────────────────────────────
 
@@ -153,7 +220,8 @@ export function useSumoSimulator() {
     setRobotCfg,
     opponentCfg,
     setOpponentCfg,
-    simState,
+    simState: simSnapshot,
+    getSimState: () => simStateRef.current,
     start,
     stop,
     reset,

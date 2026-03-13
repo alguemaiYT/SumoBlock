@@ -6,6 +6,7 @@ import { FlowCanvas } from '@/components/flow/FlowCanvas';
 import { FlowPalette } from '@/components/flow/FlowPalette';
 import { NodeInspector } from '@/components/flow/NodeInspector';
 import { exportFlowJSON, importFlowJSON } from '@/lib/flowExporter';
+import { exportFlowINO } from '@/lib/flowInoExporter';
 import {
   type GeminiGenerationDebugLog,
   GeminiGenerationError,
@@ -51,6 +52,21 @@ const Index = () => {
       alert('Erro ao importar arquivo');
     }
     e.target.value = '';
+  };
+
+  const handleExportIno = () => {
+    try {
+      const result = exportFlowINO(editor.active);
+      if (result.warnings.length === 0) return;
+
+      const messages = result.warnings
+        .map((warning) => `- ${warning.message}`)
+        .join('\n');
+      alert(`Arquivo .ino exportado com avisos:\n\n${messages}`);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao exportar arquivo .ino.';
+      alert(message);
+    }
   };
 
   const handleGenerateWithAI = async (prompt: string) => {
@@ -153,6 +169,9 @@ const Index = () => {
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleImport} className="hidden" />
             <Button variant="ghost" size="sm" onClick={() => exportFlowJSON(editor.active)}>
               <FileJson className="mr-1 h-3.5 w-3.5" /> Exportar JSON
+            </Button>
+            <Button variant="ghost" size="sm" onClick={handleExportIno}>
+              <FileJson className="mr-1 h-3.5 w-3.5" /> Exportar .ino
             </Button>
           </div>
         </header>

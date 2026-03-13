@@ -119,7 +119,7 @@ export default function SimulatorPage() {
             <ArenaView
               robotCfg={sim.robotCfg}
               opponentCfg={sim.opponentCfg}
-              simState={sim.simState}
+              getSimState={sim.getSimState}
             />
           </div>
           {sim.showBottomView && (

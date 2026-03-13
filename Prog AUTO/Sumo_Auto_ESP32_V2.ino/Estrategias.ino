@@ -56,7 +56,7 @@ void sovai(){
   if (sensorLD<=200||sensorLE<=200){
   re(velocreta);
   delay(200);}
-  Frente(200);
+  frente(200);
 }
 void contorno(){
   digitalWrite(12,HIGH);

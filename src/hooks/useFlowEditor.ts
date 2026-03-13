@@ -114,19 +114,26 @@ export function useFlowEditor() {
   const [linkFocusGroup, setLinkFocusGroup] = useState<string | null>(null);
   const historyRef = useRef<FlowStrategy[][]>([]);
   const futureRef = useRef<FlowStrategy[][]>([]);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const active = strategies[activeIndex];
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(
-        STRATEGY_BLOCKS_STORAGE_KEY,
-        JSON.stringify(strategyBlocks)
-      );
-    } catch (error) {
-      console.error('Falha ao salvar blocos de estratégia.', error);
-    }
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      try {
+        window.localStorage.setItem(
+          STRATEGY_BLOCKS_STORAGE_KEY,
+          JSON.stringify(strategyBlocks)
+        );
+      } catch (error) {
+        console.error('Falha ao salvar blocos de estratégia.', error);
+      }
+    }, 250);
+    return () => {
+      if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    };
   }, [strategyBlocks]);
 
   useEffect(() => {
@@ -154,11 +161,18 @@ export function useFlowEditor() {
     setSelectedNodeId((prev) => (prev && activeNodeIds.has(prev) ? prev : null));
   }, [active.nodes]);
 
+  const cloneStrategies = useCallback((value: FlowStrategy[]) => {
+    if (typeof structuredClone === 'function') {
+      return structuredClone(value);
+    }
+    return JSON.parse(JSON.stringify(value));
+  }, []);
+
   const pushHistory = useCallback(() => {
-    historyRef.current.push(JSON.parse(JSON.stringify(strategies)));
+    historyRef.current.push(cloneStrategies(strategies));
     futureRef.current = [];
     if (historyRef.current.length > 50) historyRef.current.shift();
-  }, [strategies]);
+  }, [cloneStrategies, strategies]);
 
   const updateActive = useCallback(
     (updater: (s: FlowStrategy) => FlowStrategy) => {
@@ -667,17 +681,17 @@ export function useFlowEditor() {
 
   const undo = useCallback(() => {
     if (historyRef.current.length === 0) return;
-    futureRef.current.push(JSON.parse(JSON.stringify(strategies)));
+    futureRef.current.push(cloneStrategies(strategies));
     const prev = historyRef.current.pop()!;
     setStrategies(prev);
-  }, [strategies]);
+  }, [cloneStrategies, strategies]);
 
   const redo = useCallback(() => {
     if (futureRef.current.length === 0) return;
-    historyRef.current.push(JSON.parse(JSON.stringify(strategies)));
+    historyRef.current.push(cloneStrategies(strategies));
     const next = futureRef.current.pop()!;
     setStrategies(next);
-  }, [strategies]);
+  }, [cloneStrategies, strategies]);
 
   const addTab = useCallback(() => {
     pushHistory();

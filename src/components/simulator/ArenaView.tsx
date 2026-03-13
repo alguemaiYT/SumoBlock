@@ -11,14 +11,23 @@ import {
 interface ArenaViewProps {
   robotCfg: SumoRobotConfig;
   opponentCfg: SumoRobotConfig;
-  simState: SimState;
+  getSimState: () => SimState;
 }
 
-export function ArenaView({ robotCfg, opponentCfg, simState }: ArenaViewProps) {
+export function ArenaView({ robotCfg, opponentCfg, getSimState }: ArenaViewProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const sizeRef = useRef(0);
+  const dprRef = useRef(1);
+  const robotCfgRef = useRef(robotCfg);
+  const opponentCfgRef = useRef(opponentCfg);
+  const getSimStateRef = useRef(getSimState);
 
-  const draw = useCallback(() => {
+  useEffect(() => { robotCfgRef.current = robotCfg; }, [robotCfg]);
+  useEffect(() => { opponentCfgRef.current = opponentCfg; }, [opponentCfg]);
+  useEffect(() => { getSimStateRef.current = getSimState; }, [getSimState]);
+
+  const updateCanvasSize = useCallback(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
     if (!canvas || !container) return;
@@ -26,16 +35,30 @@ export function ArenaView({ robotCfg, opponentCfg, simState }: ArenaViewProps) {
     const rect = container.getBoundingClientRect();
     const dpr = window.devicePixelRatio || 1;
     const size = Math.min(rect.width, rect.height);
+    sizeRef.current = size;
+    dprRef.current = dpr;
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     canvas.style.width = `${size}px`;
     canvas.style.height = `${size}px`;
+  }, []);
 
+  const draw = useCallback(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    if (sizeRef.current === 0) updateCanvasSize();
+
+    const size = sizeRef.current;
+    const dpr = dprRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, size, size);
+
+    const simState = getSimStateRef.current();
+    const currentRobotCfg = robotCfgRef.current;
+    const currentOpponentCfg = opponentCfgRef.current;
 
     // Transform so arena center is at canvas center
     const scale = (size * 0.9) / (DOHYO_RADIUS * 2 + 20);
@@ -80,24 +103,31 @@ export function ArenaView({ robotCfg, opponentCfg, simState }: ArenaViewProps) {
     ctx.stroke();
 
     // ── Draw robots ───────────────────────────────────────────────
-    drawRobot(ctx, robotCfg, simState.robot, true);
-    drawRobot(ctx, opponentCfg, simState.opponent, false);
+    drawRobot(ctx, currentRobotCfg, simState.robot, true);
+    drawRobot(ctx, currentOpponentCfg, simState.opponent, false);
 
     ctx.restore();
-  }, [robotCfg, opponentCfg, simState]);
-
-  useEffect(() => {
-    const id = requestAnimationFrame(draw);
-    return () => cancelAnimationFrame(id);
-  }, [draw]);
+  }, [updateCanvasSize]);
 
   // Resize observer
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
-    const ro = new ResizeObserver(() => draw());
+    const ro = new ResizeObserver(() => {
+      updateCanvasSize();
+    });
     ro.observe(container);
     return () => ro.disconnect();
+  }, [updateCanvasSize]);
+
+  useEffect(() => {
+    let rafId = 0;
+    const render = () => {
+      draw();
+      rafId = requestAnimationFrame(render);
+    };
+    rafId = requestAnimationFrame(render);
+    return () => cancelAnimationFrame(rafId);
   }, [draw]);
 
   return (

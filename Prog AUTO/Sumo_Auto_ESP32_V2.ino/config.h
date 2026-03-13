@@ -15,7 +15,6 @@
 #define IR_RECEIVE_PIN   23  
 #define LED_BUILTIN      11
 #define DECODE_SONY
-float accelBiasX = 0.0f;      // definido na calibração (raw counts)
 const float LSB_PER_G = 16384.0f; // ajuste se usar ±4g -> 8192
 const float G_TO_MS2 = 9.81f;
 float ema_alpha = 0.30f;      // ajuste: 0.2..0.4 recomendado
