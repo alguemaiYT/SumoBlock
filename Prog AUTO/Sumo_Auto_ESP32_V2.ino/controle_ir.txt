@@ -1,0 +1,51 @@
+Resumo do controle IR (0x00, 0x01, 0x02)
+
+Componentes
+- 1x Microcontrolador (ESP32 ou Arduino)
+- 1x Transistor NPN (2N2222 ou BC337)
+- 1x LED infravermelho 940 nm (2 pinos: anodo e catodo)
+- 1x Resistor de base 1 kOhm
+- 1x Resistor pull-down de base 10 kOhm
+- 1x Resistor do LED IR (47 Ohm a 100 Ohm; tipico 56 Ohm em 5V)
+- 1x Capacitor eletrolitico 100 uF
+- 1x Capacitor ceramico 100 nF
+- 3x Botoes momentaneos (Ready, Start, Stop)
+- 1x Fonte/bateria (3,3 V ou 5 V)
+
+Ligacoes de alimentacao
+- Positivo da fonte no VCC do microcontrolador.
+- GND da fonte no GND do microcontrolador.
+- GND comum entre microcontrolador, transistor e botoes.
+- Capacitor 100 uF entre VCC e GND.
+- Capacitor 100 nF entre VCC e GND, proximo ao MCU.
+
+Ligacoes do transistor e LED IR
+- GPIO de transmissao IR do MCU -> resistor 1 kOhm -> base do transistor.
+- Base do transistor -> resistor 10 kOhm -> GND.
+- Emissor do transistor -> GND.
+- Coletor do transistor -> catodo do LED IR.
+- Anodo do LED IR -> resistor 47-100 Ohm -> VCC.
+
+Observacao sobre o LED IR
+- O LED IR tem 2 pinos:
+  - Anodo (+): vai ao VCC pelo resistor.
+  - Catodo (-): vai ao coletor do transistor.
+
+Ligacoes dos botoes
+- Um terminal de cada botao no GND.
+- Outro terminal de cada botao em um GPIO:
+  - READY em GPIO_READY.
+  - START em GPIO_START.
+  - STOP em GPIO_STOP.
+- Configurar os GPIOs como INPUT_PULLUP.
+
+Mapeamento de comandos IR (Sony)
+- Botao Ready envia 0x00.
+- Botao Start envia 0x01.
+- Botao Stop envia 0x02.
+
+Sequencia de uso com o robo
+1) Enviar estrategia por Bluetooth: EST,valor*.
+2) Enviar IR 0x00 (Ready).
+3) Enviar IR 0x01 (Prepared/Start) para iniciar.
+4) Enviar IR 0x02 para parada imediata.
